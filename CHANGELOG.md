@@ -3,6 +3,13 @@
 Los cambios se agrupan por versión. La versión del paquete se define en
 `pyproject.toml`; los tags locales usan el prefijo `v`.
 
+## [0.2.0] - 2026-10-19
+
+### Added
+
+- Dijkstra manual con `heapq`, relajación estricta, descarte de entradas obsoletas y reconstrucción de rutas de costo mínimo.
+- Pruebas de rutas óptimas, empates, ciclos de peso cero, costo versus saltos y entradas obsoletas del heap.
+
 ## [0.1.0] - 2026-10-19
 
 ### Added
