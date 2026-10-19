@@ -3,6 +3,14 @@
 Los cambios se agrupan por versión. La versión del paquete se define en
 `pyproject.toml`; los tags locales usan el prefijo `v`.
 
+## [0.4.1] - 2026-10-19
+
+### Fixed
+
+- Al cambiar el algoritmo tras una comparación se conservan los resultados comparativos y se actualiza la ruta seleccionada.
+- Colores de textos, pesos y leyenda del grafo fijados explícitamente para mantener contraste sobre el fondo claro de Plotly, independientemente del tema de Streamlit.
+- Pruebas de ejecución individual, invalidación al cambiar extremos y no mutación del grafo durante la visualización.
+
 ## [0.4.0] - 2026-10-19
 
 ### Added

@@ -51,15 +51,16 @@ def build_graph_figure(graph: Graph, result: RouteResult) -> go.Figure:
     figure = go.Figure()
     figure.add_trace(go.Scatter(
         x=regular_x, y=regular_y, mode="lines", name="Conexiones",
-        line={"color": "#b8c2cc", "width": 2}, hoverinfo="skip",
+        line={"color": "#64748b", "width": 2}, hoverinfo="skip",
     ))
     figure.add_trace(go.Scatter(
         x=highlighted_x, y=highlighted_y, mode="lines", name="Ruta seleccionada",
-        line={"color": "#d97706", "width": 5}, hoverinfo="skip",
+        line={"color": "#b45309", "width": 5}, hoverinfo="skip",
     ))
     figure.add_trace(go.Scatter(
         x=weight_x, y=weight_y, mode="text", text=weight_labels,
-        name="Costos", textposition="middle center", textfont={"size": 12},
+        name="Costos", textposition="middle center",
+        textfont={"size": 12, "color": "#1f2937"},
         hoverinfo="skip",
     ))
     colors = [
@@ -82,13 +83,14 @@ def build_graph_figure(graph: Graph, result: RouteResult) -> go.Figure:
         x=[positions[node][0] for node in nodes],
         y=[positions[node][1] for node in nodes],
         mode="markers+text", text=list(nodes), customdata=node_labels,
-        textposition="top center",
+        textposition="top center", textfont={"size": 14, "color": "#1f2937"},
         name="Ubicaciones", marker={"size": 24, "color": colors, "symbol": symbols, "line": {"width": 2, "color": "white"}},
         hovertemplate="%{customdata}<extra></extra>",
     ))
     figure.update_layout(
         height=440, autosize=True, margin={"l": 10, "r": 10, "t": 15, "b": 10},
-        legend={"orientation": "h", "y": -0.12},
+        font={"color": "#1f2937"},
+        legend={"orientation": "h", "y": -0.12, "font": {"color": "#1f2937"}},
         xaxis={"visible": False, "fixedrange": True},
         yaxis={"visible": False, "fixedrange": True, "scaleanchor": "x"},
         plot_bgcolor="white", paper_bgcolor="white",

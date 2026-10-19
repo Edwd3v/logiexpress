@@ -17,6 +17,12 @@ def _clear_results() -> None:
     st.session_state.pop("analysis", None)
 
 
+def _clear_single_result() -> None:
+    analysis = st.session_state.get("analysis")
+    if analysis is not None and len(analysis) != len(_LABELS):
+        st.session_state.pop("analysis", None)
+
+
 def _format_path(result: RouteResult) -> str:
     return " → ".join(result.path) if result.path is not None else "Sin ruta"
 
@@ -34,7 +40,7 @@ def main() -> None:
     controls = st.columns([1, 1, 1, 1.3])
     origin = controls[0].selectbox("Origen", nodes, index=nodes.index("A"), on_change=_clear_results)
     destination = controls[1].selectbox("Destino", nodes, index=nodes.index("D"), on_change=_clear_results)
-    algorithm_label = controls[2].selectbox("Algoritmo", tuple(_LABELS), on_change=_clear_results)
+    algorithm_label = controls[2].selectbox("Algoritmo", tuple(_LABELS), on_change=_clear_single_result)
     comparison = controls[3].checkbox("Comparar los tres algoritmos", on_change=_clear_results)
     run = st.button("Ejecutar análisis", type="primary")
 
@@ -55,7 +61,10 @@ def main() -> None:
     if selected is None:
         selected = next(iter(analysis.values()))
     st.subheader("Red y ruta seleccionada")
-    st.plotly_chart(build_graph_figure(graph, selected), width="stretch", config={"displayModeBar": False})
+    st.plotly_chart(
+        build_graph_figure(graph, selected), width="stretch", theme=None,
+        config={"displayModeBar": False},
+    )
 
     st.subheader(f"Resultado: {_DISPLAY_NAMES[selected.algorithm]}")
     if selected.found:
