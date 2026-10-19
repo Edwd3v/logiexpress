@@ -3,6 +3,17 @@
 Los cambios se agrupan por versión. La versión del paquete se define en
 `pyproject.toml`; los tags locales usan el prefijo `v`.
 
+## [0.3.0] - 2026-10-19
+
+### Added
+
+- Servicio de ejecución individual y comparación estable de BFS, DFS y Dijkstra, conservando sus resultados `RouteResult`.
+- Pruebas de despacho, propagación de errores, comparación, garantías de saltos/costos y preservación del grafo.
+
+### Changed
+
+- Contrato documentado del servicio actualizado a `run_route()` y comparación ordenada BFS, DFS y Dijkstra.
+
 ## [0.2.0] - 2026-10-19
 
 ### Added

@@ -77,11 +77,11 @@ Para Dijkstra: iniciar distancia `origin=0`, demás infinito; heap con pares `(d
 Interfaz propuesta:
 
 ```python
-def calculate_route(graph: Graph, origin: str, destination: str, algorithm: AlgorithmName) -> RouteResult: ...
-def compare_routes(graph: Graph, origin: str, destination: str) -> dict[str, RouteResult]: ...
+def run_route(graph: Graph, origin: str, destination: str, algorithm: str) -> RouteResult: ...
+def compare_routes(graph: Graph, origin: str, destination: str) -> dict[AlgorithmName, RouteResult]: ...
 ```
 
-El servicio selecciona la implementación y hace llegar el resultado a la UI. No modifica el grafo ni implementa una nueva búsqueda. La UI captura errores de entrada y los presenta sin traza técnica.
+`run_route()` acepta los identificadores `bfs`, `dfs` y `dijkstra`; un nombre desconocido produce `ValueError`, mientras que los errores del dominio se propagan. `compare_routes()` devuelve un diccionario en orden de inserción BFS, DFS y Dijkstra, con los resultados originales y sin elegir un ganador universal. Cada algoritmo conserva su propia semántica de `visited_order`. El servicio delega la búsqueda a los algoritmos y no modifica el grafo.
 
 ## 5. Matriz de pruebas obligatorias
 
