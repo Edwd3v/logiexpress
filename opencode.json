@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "docs/ARCHITECTURE.md"
+  ],
+  "agents": {
+    "openai-balanced": {
+      "permissions": [
+        {
+          "action": "subagent",
+          "resource": "algorithm-reviewer",
+          "effect": "allow"
+        }
+      ]
+    }
+  },
+  "permission": {
+    "edit": "ask",
+    "bash": "ask"
+  }
+}
