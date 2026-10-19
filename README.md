@@ -2,7 +2,7 @@
 
 Kit de **arquitectura e instrucciones para OpenCode** del proyecto académico LogiExpress (Python, Estructuras de Datos).
 
-**Estado actual del kit:** contiene documentos de diseño y configuración de agentes; **NO** incluye la aplicación Python construida, dependencias instaladas ni pruebas ejecutadas.
+**Estado actual:** aplicación Python académica con grafo propio, BFS, DFS, Dijkstra, servicio de comparación y dashboard Streamlit/Plotly. La red y sus costos son ficticios; el dibujo no representa coordenadas geográficas.
 
 ## Archivos iniciales
 
@@ -24,15 +24,18 @@ logiexpress/
     └── OPENCODE_GUIDE.md
 ```
 
-El código Python (`src/`, `tests/`, `app.py`, `pyproject.toml`) es una **estructura futura propuesta** descrita en `docs/ARCHITECTURE.md`; OpenCode lo irá creando por etapas autorizadas.
+El núcleo y la primera interfaz están implementados en `src/`, con pruebas en `tests/` y lanzador `app.py`.
 
 ## Primeros pasos
 
-1. Extrae el contenido del ZIP **dentro** del directorio raíz `logiexpress/`. Mantén la carpeta oculta `.opencode/`.
-2. Si ya existen archivos con estos nombres, **revisa diferencias antes de sobrescribirlos**; fusiona instrucciones cuando sea necesario.
-3. Lee `docs/ARCHITECTURE.md`, `docs/REQUIREMENTS.md` y `docs/DECISIONS.md`.
-4. Abre OpenCode desde `logiexpress/`, en modo de planificación o diagnóstico, y usa el primer prompt de `docs/OPENCODE_GUIDE.md`.
-5. Autoriza la creación del esqueleto y cada etapa por separado; exige pruebas y resultados reales.
+1. Instala Python 3.10 o posterior.
+2. Instala el proyecto y las herramientas de desarrollo: `python -m pip install -e '.[dev]'`.
+3. Ejecuta la aplicación: `streamlit run app.py`.
+4. Ejecuta las pruebas y el lint: `pytest -q` y `ruff check .`.
+
+## Uso del dashboard
+
+Elegí origen, destino y algoritmo, o activá la comparación de los tres. El grafo conserva las mismas posiciones esquemáticas en cada ejecución; los costos son abstractos y ficticios. El camino resaltado y el orden de exploración se muestran por separado.
 
 ## Convenciones del repositorio
 

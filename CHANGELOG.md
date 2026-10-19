@@ -3,6 +3,19 @@
 Los cambios se agrupan por versión. La versión del paquete se define en
 `pyproject.toml`; los tags locales usan el prefijo `v`.
 
+## [0.4.0] - 2026-10-19
+
+### Added
+
+- Dashboard académico interactivo con Streamlit y visualización esquemática de la red mediante Plotly.
+- Grafo ficticio reproducible, controles de origen/destino/algoritmo, ejecución individual y comparación de rutas.
+- Pruebas unitarias de datos y figura, más interacciones del dashboard con Streamlit AppTest.
+
+### Changed
+
+- README actualizado con instalación y comandos para ejecutar la aplicación y las verificaciones.
+- ADR-014 registra Plotly y las posiciones esquemáticas deterministas para el MVP.
+
 ## [0.3.0] - 2026-10-19
 
 ### Added

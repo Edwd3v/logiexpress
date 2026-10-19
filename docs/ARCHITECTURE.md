@@ -1,6 +1,6 @@
 # Arquitectura propuesta — LogiExpress
 
-**Estado:** propuesta inicial, no implementación verificada.
+**Estado:** propuesta inicial con núcleo, servicios y dashboard implementados progresivamente; consultar `CHANGELOG.md` y las verificaciones de cada incremento.
 **Fecha de preparación:** 2026-10-19.
 **Audiencia:** estudiante desarrollador, OpenCode y evaluación académica.
 **Documento complementario:** `CONTRACTS.md`.

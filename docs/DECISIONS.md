@@ -17,6 +17,7 @@ Este documento evita convertir propuestas en obligaciones. **Todas las decisione
 | ADR-011 | Propuesta | `app.py` como lanzador de Streamlit | Comando de arranque sencillo | No poner lógica de negocio en archivo raíz |
 | ADR-012 | Propuesta | La UI muestra orden de visita y camino por separado | Diferencia conceptos frecuentemente confundidos | Documentar cuándo se detiene cada exploración |
 | ADR-013 | Aprobada (2026-10-19) | Semantic Versioning con `pyproject.toml` como fuente de versión, changelog y tags anotados por incremento aprobado | Versiones locales verificables y entregas trazables | Funcionalidad en 0.x incrementa MINOR; corrección compatible incrementa PATCH; versión sin revisión obligatoria no se confirma |
+| ADR-014 | Implementada (2026-10-19) | Dashboard Streamlit con visualización Plotly y posiciones esquemáticas deterministas | Facilita una demostración interactiva sin introducir mapas reales ni lógica algorítmica en UI | La interfaz consume servicios existentes; costos y ubicaciones se identifican como ficticios |
 
 ## Cambios al registro
 
@@ -26,6 +27,6 @@ Cada decisión aprobada debe incluir fecha, responsable y evidencia cuando exist
 
 1. **Rúbrica oficial / tutorías:** no disponibles en los archivos consultados al crear el kit; contrastar su texto si aparecen.
 2. **Naturaleza del peso:** costo genérico por ahora; decidir si será kilómetros, minutos u otra unidad con datos consistentes.
-3. **Visualización:** elegir Plotly o Graphviz tras una prueba de viabilidad pequeña; usar una sola opción en el MVP.
+3. **Visualización:** resuelto para el MVP: Plotly con posiciones esquemáticas deterministas; no representa coordenadas geográficas.
 4. **Video o sustentación:** se ha mencionado una demostración final, pero no está confirmado en una fuente vigente; no asignar duración ni formato obligatorios.
 5. **Persistencia y datos reales:** no aprobados; el ejemplo es ficticio.
