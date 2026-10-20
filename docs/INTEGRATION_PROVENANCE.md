@@ -6,10 +6,10 @@ This worktree is a copy-based integration experiment, not a merge of the pending
 
 | Source | Branch / base | Copied working-tree paths |
 |---|---|---|
-| FastAPI increment | `feature/fastapi-foundation` / `17fb317` | `AGENTS.md`, `CHANGELOG.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/CONTRACTS.md`, `docs/DECISIONS.md`, `docs/IMPLEMENTATION_PLAN.md`, `pyproject.toml`, `odd/`, `src/logiexpress/api/`, `tests/test_api.py` |
-| React increment | `feature/react-frontend` / `17fb317` | `.gitignore`, `frontend/` source, package manifests and lockfile, TypeScript/Vite config, tests, and README |
+| FastAPI increment | `feature/fastapi-foundation` / source commit `7fddb6e` / base `17fb317` | `AGENTS.md`, `CHANGELOG.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/CONTRACTS.md`, `docs/DECISIONS.md`, `docs/IMPLEMENTATION_PLAN.md`, `pyproject.toml`, `odd/`, `src/logiexpress/api/`, `tests/test_api.py` |
+| React increment | `feature/react-frontend` / source commit `77f4050` / base `17fb317` | `.gitignore`, `frontend/` source, package manifests and lockfile, TypeScript/Vite config, tests, and README |
 
-Both source worktrees had uncommitted changes and new untracked files. Their source contents were copied without changing either source worktree. No source-branch commit or merge was fabricated or performed. Installed dependencies, build output, browser screenshots, and caches were intentionally not copied.
+At integration time, both source worktrees had uncommitted changes and new untracked files. Their source contents were copied without changing either source worktree. The integration commit `2bdd815` records the combined snapshot; no source-branch merge was fabricated or performed. Installed dependencies, build output, and caches were intentionally not copied. Responsive screenshots are now deliberately recorded under `docs/assets/` as validation evidence.
 
 ## Integration decisions
 
@@ -21,4 +21,4 @@ Both source worktrees had uncommitted changes and new untracked files. Their sou
 
 ## Approval boundary
 
-This experiment does not approve either source increment or this integration candidate. The earlier native reviews were not completed: each preflight required the `external.select_intended_untracked` capture, which was unavailable in the review runtime. The repository owner subsequently disabled RDD through the official clone-scoped command; Gentle AI 4.1.1 reports the effective mode as `off` (`clone_local`) from all three shared worktrees. This records the review limitation and owner decision; it does not claim review approval. Ordinary verification and repository delivery policies still apply.
+This integration is published as `feature/react-fastapi-integration` and is pending merge into `main`. It does not claim approval of the source increments or the integration candidate. Earlier native reviews were not completed: each preflight required `external.select_intended_untracked`, which was unavailable in the review runtime. The repository owner subsequently disabled RDD through the official clone-scoped command; Gentle AI 4.1.1 reports the effective mode as `off` (`clone_local`) from all three shared worktrees. This records the review limitation and owner decision; it does not claim review approval. Python 3.10 compatibility remains unverified; the available Python runtime used for tests is 3.13.5.

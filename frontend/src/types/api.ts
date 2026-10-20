@@ -1,4 +1,4 @@
-/** Public FastAPI contracts. These types describe the API; the UI does not call it yet. */
+/** Public FastAPI contracts consumed by the React dashboard's HTTP client. */
 export type AlgorithmName = "bfs" | "dfs" | "dijkstra";
 
 export interface GraphEdgeResponse {

@@ -2,7 +2,9 @@
 
 Kit de **arquitectura e instrucciones para OpenCode** del proyecto académico LogiExpress (Python, Estructuras de Datos).
 
-**Estado actual:** núcleo Python con grafo propio, BFS, DFS y Dijkstra; servicios de rutas; dashboard Streamlit/Plotly; y API REST con FastAPI. La red y sus costos son ficticios; la visualización no representa coordenadas geográficas. React + TypeScript + Vite está aprobado para una etapa futura; Streamlit se conserva temporalmente.
+**Estado actual:** núcleo Python con grafo propio, BFS, DFS y Dijkstra; servicios de rutas; API REST FastAPI; y frontend React + TypeScript + Vite integrado mediante HTTP. Streamlit/Plotly se conserva como interfaz anterior durante la transición. La red y sus costos son ficticios; la visualización no representa coordenadas geográficas.
+
+**Entrega:** las ramas `feature/fastapi-foundation` (`7fddb6e`), `feature/react-frontend` (`77f4050`) y `feature/react-fastapi-integration` (`2bdd815`) están publicadas. La integración es el candidato actual y todavía no se ha fusionado en `main`. Las revisiones RDD anteriores constan como incompletas, no aprobadas.
 
 ## Archivos iniciales
 
@@ -28,13 +30,13 @@ El núcleo y la primera interfaz están implementados en `src/`, con pruebas en 
 
 ## Primeros pasos
 
-1. Instala Python 3.10 o posterior.
+1. Instala Python 3.10 o posterior (la validación de esta integración se ejecutó con Python 3.13.5; Python 3.10 sigue pendiente).
 2. Crea y activa un entorno virtual: `python -m venv .venv` y `source .venv/bin/activate`.
 3. Instala el paquete y las herramientas de desarrollo dentro del entorno: `python -m pip install -e '.[dev]'`.
-4. Ejecuta la aplicación Streamlit: `streamlit run app.py`.
-5. Ejecuta la API en otra terminal con el entorno activado: `uvicorn logiexpress.api.main:app --reload`.
-6. Abre la documentación interactiva en `http://127.0.0.1:8000/docs`.
-7. Ejecuta las pruebas y el lint: `pytest -q` y `ruff check .`.
+4. Inicia FastAPI desde la raíz del repositorio: `python -m uvicorn logiexpress.api.main:app --reload`.
+5. En otra terminal, instala y ejecuta el frontend: `cd frontend && npm ci && npm run dev`. Vite reenvía `/api/*` a `http://127.0.0.1:8000`; `LOGIEXPRESS_API_TARGET` permite configurar otro destino local.
+6. Abre la documentación interactiva en `http://127.0.0.1:8000/docs`. Para usar la interfaz anterior, ejecuta `streamlit run app.py`.
+7. Ejecuta las verificaciones: `pytest -q`, `ruff check .` y, desde `frontend/`, `npm test` y `npm run build`.
 
 ## Uso del dashboard
 
@@ -42,7 +44,7 @@ Elegí origen, destino y algoritmo, o activá la comparación de los tres. El gr
 
 ## API HTTP
 
-FastAPI expone el grafo ficticio compartido y delega los cálculos a `route_service`; no contiene implementaciones de BFS, DFS ni Dijkstra.
+FastAPI expone el grafo ficticio compartido y delega los cálculos a `route_service`; no contiene implementaciones de BFS, DFS ni Dijkstra. El frontend React consume esos endpoints y no incluye una copia de los algoritmos. Streamlit continúa consumiendo los mismos servicios Python.
 
 | Endpoint | Uso |
 |---|---|

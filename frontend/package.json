@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:responsive": "node scripts/check-responsive.mjs"
   },
   "dependencies": {
     "react": "^19.2.7",

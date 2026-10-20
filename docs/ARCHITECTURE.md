@@ -1,7 +1,7 @@
 # Arquitectura de LogiExpress
 
-**Estado:** núcleo Python y dashboard Streamlit implementados; la evolución React + TypeScript + Vite y FastAPI está aprobada por ADR-015. Este incremento incorpora la API; React todavía no se implementa. Streamlit coexistirá temporalmente.
-**Fecha de preparación:** 2026-10-19.
+**Estado:** núcleo Python, API FastAPI y frontend React + TypeScript + Vite están implementados e integrados mediante HTTP. Streamlit/Plotly se conserva como interfaz anterior. `feature/react-fastapi-integration` (`2bdd815`) es el candidato publicado y todavía no se fusionó en `main`.
+**Fecha de actualización:** 2026-10-20.
 **Audiencia:** estudiante desarrollador, OpenCode y evaluación académica.
 **Documento complementario:** `CONTRACTS.md`.
 
@@ -14,18 +14,18 @@ El MVP es una **demostración de estructuras de datos y algoritmos**, no un opti
 ### Evidencia y alcance
 
 - **Contexto académico informado:** grafos ponderados, BFS, DFS, Dijkstra, interacción y visualización.
-- **Implementado:** núcleo Python con lista de adyacencia propia, servicios de rutas y dashboard Streamlit; grafo no dirigido y pesos no negativos.
-- **Evolución aprobada (ADR-015):** frontend React + TypeScript + Vite → API HTTP FastAPI → servicios → algoritmos y dominio Python. Streamlit seguirá disponible temporalmente y consumiendo los mismos servicios.
-- **Fuera de este incremento:** frontend React, autenticación, microservicios, paquetes, centros de distribución complejos, multi-entrega, GPS, mapas reales, simulación de tráfico, base de datos y despliegue complejo.
+- **Implementado:** núcleo Python con lista de adyacencia propia, servicios de rutas, API FastAPI y dashboard React servido por Vite; Streamlit continúa disponible y consume los mismos servicios.
+- **Dirección implementada (ADR-015):** React + TypeScript + Vite → API HTTP FastAPI → servicios → algoritmos y dominio Python. El navegador solo presenta respuestas; BFS, DFS y Dijkstra permanecen en Python.
+- **Fuera de alcance:** autenticación, microservicios, paquetes, centros de distribución complejos, multi-entrega, GPS, mapas reales, simulación de tráfico, base de datos y despliegue complejo.
 - No se consultaron aquí fuentes primarias de rúbrica o tutoría; confirmar cuando se adjunten.
 
 ## 2. Diseño: monolito modular y dependencias hacia el núcleo
 
-Se adopta un **monolito Python modular**. Un solo proceso ejecuta Streamlit; el dominio y los algoritmos permanecen independientes y testables.
+Se adopta un **monolito Python modular**. FastAPI y Streamlit utilizan los servicios Python; React se ejecuta como cliente web separado y obtiene el grafo y resultados por HTTP. El dominio y los algoritmos permanecen independientes y testables.
 
 ```mermaid
 flowchart TD
-    REACT["Frontend futuro: React + TypeScript + Vite"] --> API["HTTP API: FastAPI"]
+    REACT["Frontend implementado: React + TypeScript + Vite"] --> API["HTTP API: FastAPI"]
     API --> SERVICE["Servicios: ejecución y comparación"]
     STREAMLIT["Streamlit temporal"] --> SERVICE
     STREAMLIT --> VIEW["Render del grafo"]
@@ -38,9 +38,9 @@ flowchart TD
 
 **Reglas de dependencia:** `domain` no importa los módulos externos; `algorithms` solo importa `domain` y `result`; `services` llama `algorithms` y `domain`; `api` valida y serializa HTTP y llama servicios; `ui` llama servicios y funciones visuales; `infrastructure` aporta datos ficticios compartidos. Ninguna interfaz ni endpoint reimplementa BFS, DFS o Dijkstra.
 
-## 3. Estructura prevista del repositorio
+## 3. Estructura del repositorio integrado
 
-> Este árbol describe **archivos a crear progresivamente por OpenCode**; no afirma que ya estén implementados. El paquete documental inicial sí contiene `AGENTS.md`, `opencode.json`, `.opencode/agents` y `docs/`.
+> El árbol muestra la estructura integrada actual. Los commits de origen son `7fddb6e` (FastAPI) y `77f4050` (React); la rama de integración los conserva junto con sus adaptaciones HTTP.
 
 ```text
 logiexpress/
@@ -57,10 +57,17 @@ logiexpress/
 │   ├── DECISIONS.md
 │   ├── IMPLEMENTATION_PLAN.md
 │   └── OPENCODE_GUIDE.md
-├── README.md                       # Introducción al kit (entregado; actualizar al implementar)
+├── README.md                       # Instalación y uso de la aplicación integrada
 ├── pyproject.toml                  # Dependencias y herramientas
-├── uv.lock                         # [FUTURO] Generado por uv
-├── app.py                          # [FUTURO] Punto de entrada Streamlit
+├── app.py                          # Punto de entrada Streamlit
+├── frontend/                       # React + TypeScript + Vite
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── vite.config.ts               # Proxy HTTP hacia FastAPI
+│   └── src/
+│       ├── App.tsx
+│       ├── services/api.ts          # Cliente HTTP
+│       └── components/              # Controles, comparación y SVG
 ├── src/
 │   └── logiexpress/
 │       ├── __init__.py
@@ -93,10 +100,11 @@ logiexpress/
     ├── test_bfs.py
     ├── test_dfs.py
     ├── test_dijkstra.py
-    └── test_route_service.py
+    ├── test_route_service.py
+    └── test_api.py
 ```
 
-`app.py` puede limitarse a importar y ejecutar una función `main()` en `logiexpress.ui.dashboard`. Evita módulos o directorios vacíos si un incremento todavía no los necesita.
+`app.py` inicia la interfaz Streamlit anterior mediante `logiexpress.ui.dashboard`. React permanece en `frontend/`, separado del paquete Python.
 
 ## 4. Responsabilidad de cada módulo
 
@@ -109,8 +117,9 @@ logiexpress/
 | `algorithms/result.py` | Definir resultado común, sin formateo visual | Importar Streamlit |
 | `services/route_service.py` | Elegir algoritmos, validar petición y reunir resultados | Reimplementar BFS/DFS/Dijkstra |
 | `api/` | Validar HTTP, serializar resultados y delegar a los servicios | Reimplementar algoritmos o duplicar el grafo |
+| `frontend/` | Consumir contratos HTTP, gestionar solicitudes y visualizar grafo/resultados | Calcular rutas o sustituir silenciosamente resultados con fixtures |
 | `infrastructure/sample_data.py` | Crear un grafo ficticio reproducible | Manejar lógica de rutas |
-| `ui/dashboard.py` | Streamlit temporal: recoger origen/destino y presentar resultados | Calcular rutas en callbacks |
+| `ui/dashboard.py` | Streamlit anterior: recoger origen/destino y presentar resultados | Calcular rutas en callbacks |
 | `ui/graph_view.py` | Dibujar ubicaciones, aristas, visitas y camino | Decidir cuál ruta es la óptima |
 
 ## 5. Modelo de datos
@@ -165,9 +174,9 @@ Estos resultados son **valores esperados de diseño**, no salidas ejecutadas del
 
 ## 8. Experiencia de usuario del MVP
 
-Una sola pantalla Streamlit es suficiente: selector de origen, selector de destino, botón de ejecución, visualización del grafo y tabla comparativa con recorridos/rutas/costos. Se puede resaltar con color el camino encontrado y enumerar el orden de visita. Mostrar mensajes distintos para `origen=destino`, `destino inalcanzable` y `nodo inválido`.
+El frontend React presenta controles de origen/destino, ejecución individual o comparación, grafo SVG dinámico y resultados recibidos de FastAPI. Streamlit permanece como interfaz anterior. Ambas distinguen el orden visitado del camino devuelto y muestran estados de error y ruta inexistente.
 
-**Visualización propuesta:** Graphviz o Plotly. Elegir una sola alternativa antes de implementarla, con criterios de simplicidad, claridad y compatibilidad con Streamlit. El uso de NetworkX solo para dibujar se podría aprobar de manera explícita; nunca usarlo como motor de BFS/DFS/Dijkstra.
+**Visualización implementada:** React dibuja el SVG con posiciones visuales calculadas en el frontend; Streamlit utiliza Plotly. Ninguna interfaz utiliza NetworkX para BFS, DFS o Dijkstra.
 
 ## 9. Pruebas y calidad
 
@@ -175,16 +184,17 @@ Una sola pantalla Streamlit es suficiente: selector de origen, selector de desti
 - Unitarias de algoritmos: rutas, orden de visita, costo, desconexión, ciclos, cero, empates, mismo origen/destino.
 - Servicio: solicitud inválida, elección de algoritmo y coherencia de `RouteResult`.
 - Pruebas de interfaz: manuales o automáticas proporcionales al MVP.
-- **Comandos previstos una vez exista el proyecto Python y estén instaladas las herramientas:** `uv run pytest`, `uv run ruff check .` y `uv run streamlit run app.py`. Su presencia en este documento no acredita ejecución.
+- **Verificación ejecutada en Python 3.13.5:** 130 pruebas pytest, `ruff check .`, `pip check`, formato dirigido de los archivos nuevos y un smoke HTTP de Streamlit. `ruff format --check .` conserva cinco hallazgos ya presentes en `main`: `docs/CONTRACTS.md` y cuatro pruebas existentes; Python 3.10 aún no se ha probado.
+- **Frontend/integración:** 15 pruebas Vitest, TypeScript, build de producción y prueba responsive Chromium. Las revisiones RDD anteriores quedaron incompletas y no son aprobaciones.
 
 ## 10. Evolución controlada
 
 1. Contratos y estructura mínima → dominio del grafo + pruebas.
 2. BFS, DFS, Dijkstra propios + pruebas + resultados de ejemplo.
 3. Servicio + dashboard Streamlit de visualización + comprobación manual.
-4. Base FastAPI: endpoints HTTP sobre los servicios existentes, con contratos y pruebas; completada en este incremento.
-5. Frontend React + TypeScript + Vite en un incremento posterior; no forma parte de esta entrega.
-6. Documentación de diseño y decisiones, evidencia de pruebas y defensa académica.
+4. API FastAPI sobre los servicios existentes, con contratos y pruebas; implementada en `feature/fastapi-foundation` (`7fddb6e`).
+5. Frontend React + TypeScript + Vite conectado por HTTP; implementado en `feature/react-frontend` (`77f4050`) e integrado en `feature/react-fastapi-integration` (`2bdd815`).
+6. La rama integrada está publicada y pendiente de revisión/merge a `main`; no se ha ejecutado el merge. Las revisiones RDD anteriores siguen incompletas.
 7. Persistencia u otras ampliaciones **solo** con valor demostrado y aprobación.
 
 Para el orden y las condiciones de cierre de cada etapa, consultar `IMPLEMENTATION_PLAN.md`.
