@@ -45,3 +45,4 @@ Elegí origen, destino y algoritmo, o activá la comparación de los tres. El gr
 - Los documentos son propuestas hasta que el usuario y una rúbrica disponible ratifiquen las decisiones.
 
 No edites `uv.lock` manualmente cuando sea generado por `uv`.
+# logiexpress
