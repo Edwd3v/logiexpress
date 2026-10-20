@@ -3,6 +3,19 @@
 Los cambios se agrupan por versión. La versión del paquete se define en
 `pyproject.toml`; los tags locales usan el prefijo `v`.
 
+## [0.5.0] - 2026-10-20
+
+### Added
+
+- Dashboard Streamlit de planificación con navegación por secciones, análisis individual o comparativo y tarjetas sincronizadas con las rutas calculadas por los servicios Python.
+- Visualización SVG adaptable a escritorio y móvil, generada desde el grafo real, con pesos configurables y ruta seleccionada resaltada.
+- Prototipo HTML de referencia y configuración visual clara de Streamlit.
+- Pruebas de navegación, selección de algoritmo, intercambio de extremos, sincronización de resultados y renderizado SVG adaptable.
+
+### Changed
+
+- Interfaz ajustada al prototipo en jerarquía visual, controles de configuración, navegación lateral y presentación de resultados.
+
 ## [0.4.1] - 2026-10-19
 
 ### Fixed
