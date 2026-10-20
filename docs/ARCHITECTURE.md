@@ -1,6 +1,6 @@
-# Arquitectura propuesta — LogiExpress
+# Arquitectura de LogiExpress
 
-**Estado:** propuesta inicial con núcleo, servicios y dashboard implementados progresivamente; consultar `CHANGELOG.md` y las verificaciones de cada incremento.
+**Estado:** núcleo Python y dashboard Streamlit implementados; la evolución React + TypeScript + Vite y FastAPI está aprobada por ADR-015. Este incremento incorpora la API; React todavía no se implementa. Streamlit coexistirá temporalmente.
 **Fecha de preparación:** 2026-10-19.
 **Audiencia:** estudiante desarrollador, OpenCode y evaluación académica.
 **Documento complementario:** `CONTRACTS.md`.
@@ -14,8 +14,9 @@ El MVP es una **demostración de estructuras de datos y algoritmos**, no un opti
 ### Evidencia y alcance
 
 - **Contexto académico informado:** grafos ponderados, BFS, DFS, Dijkstra, interacción y visualización.
-- **Decisión inicial propuesta:** Python + Streamlit + núcleo propio con listas de adyacencia; grafo no dirigido y pesos no negativos.
-- **Fuera del MVP salvo nueva evidencia/decisión:** usuarios, autenticación, paquetes, centros de distribución complejos, multi-entrega, GPS, mapas reales, simulación de tráfico, FastAPI, React, base de datos obligatoria, despliegue complejo.
+- **Implementado:** núcleo Python con lista de adyacencia propia, servicios de rutas y dashboard Streamlit; grafo no dirigido y pesos no negativos.
+- **Evolución aprobada (ADR-015):** frontend React + TypeScript + Vite → API HTTP FastAPI → servicios → algoritmos y dominio Python. Streamlit seguirá disponible temporalmente y consumiendo los mismos servicios.
+- **Fuera de este incremento:** frontend React, autenticación, microservicios, paquetes, centros de distribución complejos, multi-entrega, GPS, mapas reales, simulación de tráfico, base de datos y despliegue complejo.
 - No se consultaron aquí fuentes primarias de rúbrica o tutoría; confirmar cuando se adjunten.
 
 ## 2. Diseño: monolito modular y dependencias hacia el núcleo
@@ -24,16 +25,18 @@ Se adopta un **monolito Python modular**. Un solo proceso ejecuta Streamlit; el 
 
 ```mermaid
 flowchart TD
-    UI["Presentación: Streamlit y visualización"] --> SERVICE["Servicios: ejecución y comparación"]
-    UI --> VIEW["Render de grafo"]
+    REACT["Frontend futuro: React + TypeScript + Vite"] --> API["HTTP API: FastAPI"]
+    API --> SERVICE["Servicios: ejecución y comparación"]
+    STREAMLIT["Streamlit temporal"] --> SERVICE
+    STREAMLIT --> VIEW["Render del grafo"]
     SERVICE --> ALG["Algoritmos propios: BFS, DFS, Dijkstra"]
     SERVICE --> DOMAIN["Dominio: Grafo y validaciones"]
     ALG --> DOMAIN
     VIEW --> DOMAIN
-    DATA["Infraestructura: datos ficticios"] --> DOMAIN
+    DATA["Datos ficticios compartidos"] --> DOMAIN
 ```
 
-**Reglas de dependencia:** `domain` no importa ninguno de los otros módulos; `algorithms` solo importa `domain` y `result` (contrato neutro); `services` llama `algorithms` y `domain`; `ui` llama servicios y funciones visuales; `infrastructure` aporta datos de demostración, sin filtrar detalles a los algoritmos.
+**Reglas de dependencia:** `domain` no importa los módulos externos; `algorithms` solo importa `domain` y `result`; `services` llama `algorithms` y `domain`; `api` valida y serializa HTTP y llama servicios; `ui` llama servicios y funciones visuales; `infrastructure` aporta datos ficticios compartidos. Ninguna interfaz ni endpoint reimplementa BFS, DFS o Dijkstra.
 
 ## 3. Estructura prevista del repositorio
 
@@ -55,7 +58,7 @@ logiexpress/
 │   ├── IMPLEMENTATION_PLAN.md
 │   └── OPENCODE_GUIDE.md
 ├── README.md                       # Introducción al kit (entregado; actualizar al implementar)
-├── pyproject.toml                  # [FUTURO] Dependencias y herramientas
+├── pyproject.toml                  # Dependencias y herramientas
 ├── uv.lock                         # [FUTURO] Generado por uv
 ├── app.py                          # [FUTURO] Punto de entrada Streamlit
 ├── src/
@@ -74,6 +77,10 @@ logiexpress/
 │       ├── services/
 │       │   ├── __init__.py
 │       │   └── route_service.py
+│       ├── api/
+│       │   ├── __init__.py
+│       │   ├── main.py              # FastAPI app and HTTP routes
+│       │   └── schemas.py           # Pydantic request/response contracts
 │       ├── infrastructure/
 │       │   ├── __init__.py
 │       │   └── sample_data.py
@@ -101,8 +108,9 @@ logiexpress/
 | `algorithms/dijkstra.py` | Camino mínimo por suma de pesos no negativos | Aceptar pesos negativos |
 | `algorithms/result.py` | Definir resultado común, sin formateo visual | Importar Streamlit |
 | `services/route_service.py` | Elegir algoritmos, validar petición y reunir resultados | Reimplementar BFS/DFS/Dijkstra |
+| `api/` | Validar HTTP, serializar resultados y delegar a los servicios | Reimplementar algoritmos o duplicar el grafo |
 | `infrastructure/sample_data.py` | Crear un grafo ficticio reproducible | Manejar lógica de rutas |
-| `ui/dashboard.py` | Recoger origen/destino y presentar resultados | Calcular rutas en callbacks |
+| `ui/dashboard.py` | Streamlit temporal: recoger origen/destino y presentar resultados | Calcular rutas en callbacks |
 | `ui/graph_view.py` | Dibujar ubicaciones, aristas, visitas y camino | Decidir cuál ruta es la óptima |
 
 ## 5. Modelo de datos
@@ -173,8 +181,10 @@ Una sola pantalla Streamlit es suficiente: selector de origen, selector de desti
 
 1. Contratos y estructura mínima → dominio del grafo + pruebas.
 2. BFS, DFS, Dijkstra propios + pruebas + resultados de ejemplo.
-3. Servicio + interfaz de visualización + comprobación manual.
-4. Documentación de diseño y decisiones, evidencia de pruebas y defensa académica.
-5. Persistencia u otras ampliaciones **solo** con valor demostrado y aprobación.
+3. Servicio + dashboard Streamlit de visualización + comprobación manual.
+4. Base FastAPI: endpoints HTTP sobre los servicios existentes, con contratos y pruebas; completada en este incremento.
+5. Frontend React + TypeScript + Vite en un incremento posterior; no forma parte de esta entrega.
+6. Documentación de diseño y decisiones, evidencia de pruebas y defensa académica.
+7. Persistencia u otras ampliaciones **solo** con valor demostrado y aprobación.
 
 Para el orden y las condiciones de cierre de cada etapa, consultar `IMPLEMENTATION_PLAN.md`.

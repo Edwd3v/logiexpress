@@ -73,6 +73,22 @@ OpenCode debe revisar archivos existentes, trabajar sobre un alcance mínimo, es
 
 **Aceptación:** comandos de instalación y arranque realmente comprobados, pruebas unitarias exitosas verificadas, limitaciones, complejidades, definición de 'óptimo' y ejemplo reproducible. Preparar sustentación solo cuando su formato haya sido confirmado.
 
+## Etapa 8 — Base HTTP con FastAPI
+
+**Estado:** aprobada; el incremento actual implementa esta etapa.
+
+**Módulos:** `src/logiexpress/api/`, dependencias FastAPI/Uvicorn y HTTPX para pruebas, `tests/test_api.py`, contratos y README.
+
+**Objetivo:** publicar el grafo y los servicios de rutas existentes mediante HTTP, sin duplicar el núcleo computacional ni retirar Streamlit.
+
+**Aceptación:** endpoints de salud, consulta del grafo, cálculo individual y comparación; errores y esquemas documentados y probados. La API comparte `build_demo_graph()`, `run_route()` y `compare_routes()`.
+
+## Etapa 9 — Frontend React
+
+**Estado:** aprobado por ADR-015, posterior y fuera del incremento FastAPI.
+
+**Stack previsto:** React + TypeScript + Vite, consumiendo la API FastAPI. No iniciar esta etapa hasta que el usuario la autorice como incremento.
+
 ## Comandos previstos (usar solo después de verificar herramientas y dependencias)
 
 ```bash

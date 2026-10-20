@@ -3,6 +3,14 @@
 Los cambios se agrupan por versión. La versión del paquete se define en
 `pyproject.toml`; los tags locales usan el prefijo `v`.
 
+## [Unreleased]
+
+### Added
+
+- Base HTTP FastAPI sobre el grafo, los servicios y los resultados existentes, con contratos tipados, validación y pruebas de integración.
+- ADR-015 aprueba React + TypeScript + Vite y FastAPI como evolución; Streamlit se conserva temporalmente y React queda fuera de este incremento.
+- La versión local se prepara como `0.6.0` por la nueva API; aún no está confirmada por commit/tag ni publicada.
+
 ## [0.5.0] - 2026-10-20
 
 ### Added
