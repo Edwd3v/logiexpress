@@ -11,7 +11,7 @@ Eres un colaborador técnico de **LogiExpress**, proyecto académico de Ingenier
 - No presupongas que existe código, dependencias, pruebas, base de datos o un repositorio Git inicializado.
 - **Inspecciona el repositorio primero** (`pwd`, estructura, `git status` si corresponde, `pyproject.toml` si existe), sin sobrescribir nada. Distingue lo observado de lo propuesto.
 - No afirmes que algo funciona si no ejecutaste la comprobación. Registra comandos y resultados reales.
-- No agregues complejidad empresarial: nada de FastAPI, React, autenticación, microservicios, optimización multidestino, mapas reales o SQLite sin aprobación explícita y razón concreta.
+- No agregues complejidad empresarial fuera del alcance aprobado: React + TypeScript + Vite y FastAPI están aprobados como evolución; este incremento construye solo la API y no el frontend React. No agregues autenticación, microservicios, optimización multidestino, mapas reales, SQLite ni infraestructura adicional sin aprobación explícita y razón concreta.
 - No ejecutes acciones destructivas (borrado de archivos, reescritura de historial Git, migraciones de datos) ni operaciones externas sin permiso.
 
 ## Arquitectura obligatoria una vez aprobada
@@ -21,11 +21,12 @@ La estructura propuesta está en `docs/ARCHITECTURE.md`. Mantén estas fronteras
 1. `domain/`: grafo y validaciones del modelo, sin dependencias de Streamlit.
 2. `algorithms/`: implementaciones manuales de BFS, DFS y Dijkstra; consumen el grafo y producen un resultado común.
 3. `services/`: orquesta consultas y comparaciones; no contiene el detalle de los algoritmos.
-4. `ui/`: presenta controles, grafo y resultados; nunca implementa los algoritmos.
-5. `infrastructure/`: datos ficticios y, solo si se aprueba, persistencia.
-6. `tests/`: pruebas unitarias para dominio, algoritmos y servicios; UI se valida de forma proporcional al MVP.
+4. `api/`: expone HTTP mediante FastAPI y delega consultas a servicios; no contiene algoritmos ni mantiene un segundo grafo.
+5. `ui/`: Streamlit presenta controles, grafo y resultados y coexistirá temporalmente con el futuro cliente React; ninguna interfaz implementa algoritmos.
+6. `infrastructure/`: datos ficticios y, solo si se aprueba, persistencia.
+7. `tests/`: pruebas unitarias para dominio, algoritmos y servicios, e integración para API; UI se valida de forma proporcional al MVP.
 
-Dirección preferida: **UI → servicios → dominio/algoritmos**. Los algoritmos dependen únicamente de dominio/modelos, **no** de la UI, visualización o datos persistidos.
+Dirección aprobada: **React → FastAPI → servicios → dominio/algoritmos**; Streamlit temporal → servicios. Los algoritmos dependen únicamente de dominio/modelos, **no** de la UI, API, visualización o datos persistidos.
 
 ## Invariantes matemáticas y didácticas
 
@@ -55,7 +56,7 @@ No avances automáticamente todas las fases. Antes de modificar un proyecto exis
 - Priorizar biblioteca estándar en el núcleo: `dict`, `deque`, `heapq`, `dataclasses`.
 - Evitar abstracciones prematuras: no interfaces genéricas, patrones de repositorio ni contenedores DI si el MVP no los necesita.
 - Usar orden de vecinos **lexicográfico por ID** para ejemplos y pruebas reproducibles.
-- Dependencias propuestas: `streamlit`, visualización ligera por escoger, `pytest`, `ruff`, `uv` para gestión; confirmar disponibilidad antes de usarlas.
+- Dependencias actuales/propuestas: `streamlit`, `plotly`, `fastapi`, `uvicorn`, `httpx` para pruebas, `pytest`, `ruff`; confirmar disponibilidad antes de usarlas. React + TypeScript + Vite pertenecen a la futura interfaz, no a este paquete Python.
 - Mantener README, decisiones y estado de avance honestos. Nunca editar directamente el archivo de bloqueo de dependencias.
 
 ## Versionamiento, revisión y entrega

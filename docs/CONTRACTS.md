@@ -102,6 +102,26 @@ def compare_routes(graph: Graph, origin: str, destination: str) -> dict[Algorith
 | Arista duplicada | Rechazo explícito, sin reemplazar silenciosamente |
 | Ejemplo A → E del documento de arquitectura | BFS costo 11; DFS costo 10; Dijkstra costo 4 |
 
-## 6. Evidencia requerida
+## 6. API HTTP
+
+La API FastAPI expone los servicios existentes y no ejecuta algoritmos directamente. `GET /api/graph` devuelve IDs en orden lexicográfico y cada arista no dirigida una sola vez, ordenada por `(source, target)`:
+
+```json
+{
+  "nodes": ["A", "B"],
+  "edges": [{"source": "A", "target": "B", "weight": 4.0}],
+  "directed": false
+}
+```
+
+`POST /api/routes/compute` recibe `{ "origin": "A", "destination": "D", "algorithm": "dijkstra" }`. `algorithm` acepta `bfs`, `dfs` o `dijkstra`; la respuesta conserva `algorithm`, `origin`, `destination`, `visited_order`, `path`, `hops`, `total_weight` y `found` del resultado del servicio.
+
+`POST /api/routes/compare` recibe `{ "origin": "A", "destination": "D" }` y devuelve un objeto con claves `bfs`, `dfs` y `dijkstra`, cada una con el resultado original de `compare_routes()`. No se declara un ganador universal.
+
+Los errores de validación y de nodos desconocidos usan `{ "error": { "code": "...", "message": "...", "fields": [] } }`. JSON malformado, campos ausentes/desconocidos o inválidos y algoritmos no admitidos responden `422`; nodos desconocidos en las operaciones de ruta responden `404`. Los mensajes no incluyen trazas ni valores internos. Los IDs válidos se conservan exactamente, sin recortarlos ni normalizarlos. Una ruta inalcanzable responde `200`, con `found=false`, `path=null`, `hops=null` y `total_weight=null`; origen igual a destino responde `200`, con ruta de un nodo, cero saltos y peso cero.
+
+`GET /api/health` responde `{"status":"ok"}` sin construir grafos ni ejecutar algoritmos.
+
+## 7. Evidencia requerida
 
 No alcanza con comprobar el costo total: verificar también `path`, `visited_order`, `hops` y `found`, además de la independencia respecto de Streamlit. Al concluir la fase, reportar comandos y resultados **realmente ejecutados**.
