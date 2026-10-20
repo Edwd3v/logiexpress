@@ -38,7 +38,7 @@ Acceptance: desktop/mobile layout remains responsive and recognizable at all fiv
 - T1 — S1,S2,S3,S4: Copy the FastAPI and React source sets into this isolated worktree with provenance recorded; direct inline; completed; integration commit `2bdd815`.
 - T2 — S1,S2,S3,S4,S5,S6: Add the API client, request state, dynamic SVG rendering, and distinct traversal/path presentation; direct inline; completed; integration commit `2bdd815`.
 - T3 — S1,S2,S3,S4,S5,S6: Add regression/integration tests and run authorized checks; direct inline; completed; integration commit `2bdd815`; RDD reviews remain incomplete and Python 3.10 remains unverified.
-- T4 — S6: Diagnose the mobile capture discrepancy, add exact-viewport Chromium overflow/control/result checks, capture comparison evidence, and correct integration documentation; direct inline; completed after 130 Python tests, 15 React tests, TypeScript/build, Ruff check, pip dependency check, and five-size Chromium validation; RDD review remains incomplete and Python 3.10 is unverified; corrective commit pending.
+- T4 — S6: Diagnose the mobile capture discrepancy, add exact-viewport Chromium overflow/control/result checks, capture comparison evidence, and correct integration documentation; direct inline; completed after 130 Python tests, 15 React tests, TypeScript/build, Ruff check, pip dependency check, and five-size Chromium validation; corrective commit `061beb2`; RDD review remains incomplete and Python 3.10 is unverified.
 
 ## Log
 
@@ -242,6 +242,7 @@ Proporciona:
 - Browser/integration: `npm run test:responsive` passed in Chromium at 390×844, 375×812, 768×1024, 1366×768, and 1440×900. It checked no horizontal overflow/clipping, usable controls, live FastAPI results, matching route/cost/hops, and SVG path highlighting. Comparison screenshots are in `docs/assets/`.
 - Browser command: with FastAPI at `127.0.0.1:8107` and Vite proxying to it at `127.0.0.1:5178`, `CHROME_BIN=/snap/bin/chromium LOGIEXPRESS_TEST_URL=http://127.0.0.1:5178/ RESPONSIVE_SCREENSHOT_DIR=/tmp/opencode/logiexpress-responsive-final npm run test:responsive` — all five viewport cases passed; 390×844 output image confirmed at 390×844 pixels.
 - Rollback boundary: this corrective unit is limited to `frontend/scripts/check-responsive.mjs`, its package script, the two responsive evidence images and their guide, and integration-state documentation/task records. Reverting those paths does not alter Python algorithms, API behavior, or dependency manifests.
+- Corrective work-unit commit: `061beb2` (`fix(responsive): validate exact browser viewport and document integration`).
 - Browser diagnosis: `--window-size=390,844` produced `innerWidth=500`, `innerHeight=757`, and `clientWidth=485`; explicit CDP device metrics produced the requested CSS viewport. No CSS change was needed.
 - GitHub lookup: no issues were returned by the open/closed issue query and no PR exists for this head branch. The PR template skill requires an approved issue, so PR creation is blocked until an approved issue exists; no issue was created.
 - Native RDD review remains incomplete; Python 3.10 remains unvalidated. The formatter findings are unchanged and pre-existing.
