@@ -46,3 +46,4 @@ Elegí origen, destino y algoritmo, o activá la comparación de los tres. El gr
 
 No edites `uv.lock` manualmente cuando sea generado por `uv`.
 # logiexpress
+# logiexpress
