@@ -172,6 +172,8 @@ export default function App() {
             <GraphPanel
               graph={graph}
               result={currentResult}
+              origin={state.origin}
+              destination={state.destination}
               algorithm={state.algorithm}
               showWeights={state.showWeights}
               onToggleWeights={(showWeights) => updateState({ showWeights })}

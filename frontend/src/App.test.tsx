@@ -4,20 +4,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
 const graph = {
-  nodes: ["M", "N", "Z"],
+  nodes: ["A", "E", "F"],
   edges: [
-    { source: "M", target: "N", weight: 2 },
-    { source: "N", target: "Z", weight: 3 },
+    { source: "A", target: "E", weight: 2 },
+    { source: "E", target: "F", weight: 3 },
   ],
   directed: false as const,
 };
 
 const route = {
   algorithm: "dijkstra" as const,
-  origin: "M",
-  destination: "Z",
-  visited_order: ["M", "N", "Z"],
-  path: ["M", "N", "Z"],
+  origin: "A",
+  destination: "F",
+  visited_order: ["A", "E", "F"],
+  path: ["A", "E", "F"],
   hops: 2,
   total_weight: 5,
   found: true,
@@ -58,7 +58,7 @@ describe("LogiExpress dashboard", () => {
     fireEvent.click(bfsCard);
     expect(bfsCard.getAttribute("aria-pressed")).toBe("true");
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/routes/compare");
-    expect(document.querySelectorAll(".svg-active-edge")).toHaveLength(2);
+    expect(document.querySelectorAll(".road-highlight")).toHaveLength(2);
   });
 
   it("swaps endpoints, toggles dynamic edge weights, and resets controls", async () => {
@@ -68,15 +68,15 @@ describe("LogiExpress dashboard", () => {
     expect(document.querySelectorAll(".edge-weight")).toHaveLength(2);
 
     fireEvent.click(screen.getByRole("button", { name: "Intercambiar origen y destino" }));
-    expect(origin.value).toBe("Z");
-    expect(destination.value).toBe("M");
+    expect(origin.value).toBe("F");
+    expect(destination.value).toBe("A");
 
     fireEvent.click(screen.getByLabelText("Mostrar pesos"));
     expect(document.querySelectorAll(".edge-weight")).toHaveLength(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Restablecer" }));
-    expect(origin.value).toBe("M");
-    expect(destination.value).toBe("Z");
+    expect(origin.value).toBe("A");
+    expect(destination.value).toBe("F");
     expect(document.querySelectorAll(".edge-weight")).toHaveLength(2);
   });
 

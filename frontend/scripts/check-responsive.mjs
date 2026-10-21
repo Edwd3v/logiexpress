@@ -118,6 +118,15 @@ try {
         viewport: window.innerWidth,
         viewportHeight: window.innerHeight,
         clientWidth: width,
+        mapViewport: (() => {
+          const map = document.querySelector('.graph-stage');
+          if (!map) return null;
+          return {
+            clientWidth: map.clientWidth,
+            contentWidth: map.scrollWidth,
+            overflowX: getComputedStyle(map).overflowX,
+          };
+        })(),
         document: document.documentElement.scrollWidth,
         body: document.body.scrollWidth,
         controlsVisible: visible,
@@ -125,7 +134,9 @@ try {
         nodes: document.querySelectorAll('.svg-node').length,
         overflow: [...document.body.querySelectorAll('*')]
           .map(element => ({ element, rect: element.getBoundingClientRect() }))
-          .filter(({ element, rect }) => rect.width > 0 && (rect.left < -1 || rect.right > width + 1))
+          .filter(({ element, rect }) => rect.width > 0
+            && (rect.left < -1 || rect.right > width + 1)
+            && !element.closest('.graph-stage'))
           .slice(0, 6)
           .map(({ element, rect }) => ({ tag: element.tagName, className: String(element.className?.baseVal ?? element.className ?? '').slice(0, 80), left: Math.round(rect.left), right: Math.round(rect.right) }))
       };
@@ -140,6 +151,10 @@ try {
     );
     assert.deepEqual(before.overflow, [], `${viewport.width}px: content extends beyond the viewport: ${JSON.stringify(before.overflow)}`);
     assert.deepEqual(before.clipped, [], `${viewport.width}px: clipped content: ${JSON.stringify(before.clipped)}`);
+    if (viewport.width <= 600) {
+      assert.ok(before.mapViewport.contentWidth > before.mapViewport.clientWidth, `${viewport.width}px: the map must remain horizontally scrollable.`);
+      assert.equal(before.mapViewport.overflowX, "auto", `${viewport.width}px: map overflow must be explicitly scrollable.`);
+    }
 
     await evaluate(`document.querySelector('form.controls button[type="submit"]').click()`);
     const result = await waitForResult(evaluate);
@@ -149,9 +164,79 @@ try {
     assert.equal(result.renderedWeight, String(result.apiWeight), `${viewport.width}px: displayed cost must match Python`);
     assert.equal(result.renderedHops, String(result.apiHops), `${viewport.width}px: displayed hops must match Python`);
 
+    for (const algorithm of ["bfs", "dfs"]) {
+      await evaluate(`document.querySelector('input[name="algorithm"][value="${algorithm}"]').click()`);
+      await evaluate(`document.querySelector('form.controls button[type="submit"]').click()`);
+      const algorithmResult = await waitForResult(evaluate);
+      assert.equal(algorithmResult.apiAlgorithm, algorithm, `${viewport.width}px: ${algorithm} must come from FastAPI`);
+      assert.ok(algorithmResult.found, `${viewport.width}px: ${algorithm} route must be found`);
+      assert.deepEqual(algorithmResult.renderedPath, algorithmResult.apiPath, `${viewport.width}px: ${algorithm} SVG route must match Python`);
+    }
+
+    await evaluate(`document.querySelector('input[name="mode"][value="single"]').click()`);
+    await evaluate(`document.querySelector('input[name="algorithm"][value="dijkstra"]').click()`);
+    await evaluate(`document.querySelector('form.controls button[type="submit"]').click()`);
+    const singleRouteResult = await waitForResult(evaluate);
+    assert.equal(singleRouteResult.apiAlgorithm, "dijkstra", `${viewport.width}px: single-route mode must call Python`);
+    assert.deepEqual(singleRouteResult.renderedPath, ["A", "E", "F", "D"], `${viewport.width}px: individual route must match FastAPI`);
+
+    await evaluate(`(() => {
+      const origin = document.querySelector('#origin');
+      const destination = document.querySelector('#destination');
+      const setValue = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+      setValue.call(origin, 'B');
+      origin.dispatchEvent(new Event('change', { bubbles: true }));
+      setValue.call(destination, 'C');
+      destination.dispatchEvent(new Event('change', { bubbles: true }));
+    })()`);
+    await evaluate(`document.querySelector('form.controls button[type="submit"]').click()`);
+    const selectedPairResult = await waitForResult(evaluate);
+    assert.equal(selectedPairResult.apiOrigin, "B", `${viewport.width}px: selected origin must be sent to FastAPI`);
+    assert.equal(selectedPairResult.apiDestination, "C", `${viewport.width}px: selected destination must be sent to FastAPI`);
+    assert.equal(selectedPairResult.selectedEndpoints, true, `${viewport.width}px: selected endpoints must be marked on the map`);
+
+    await evaluate(`(() => {
+      const origin = document.querySelector('#origin');
+      const destination = document.querySelector('#destination');
+      const setValue = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+      setValue.call(origin, 'A');
+      origin.dispatchEvent(new Event('change', { bubbles: true }));
+      setValue.call(destination, 'D');
+      destination.dispatchEvent(new Event('change', { bubbles: true }));
+      document.querySelector('input[name="algorithm"][value="dijkstra"]').click();
+    })()`);
+    await evaluate(`document.querySelector('form.controls button[type="submit"]').click()`);
+    const restoredResult = await waitForResult(evaluate);
+    assert.deepEqual(restoredResult.apiPath, ["A", "E", "F", "D"], `${viewport.width}px: Dijkstra must return the expected Python path`);
+
     if (screenshotDirectory) {
       const screenshot = await command("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
       await writeFile(join(screenshotDirectory, `${viewport.width}x${viewport.height}.png`), Buffer.from(screenshot.data, "base64"));
+      if (viewport.width <= 600) {
+        const mapPosition = await evaluate(`(() => {
+          const map = document.querySelector('.graph-stage');
+          const rect = map.getBoundingClientRect();
+          const centeredTop = rect.top + window.scrollY - (window.innerHeight - rect.height) / 2;
+          window.scrollTo({ top: Math.max(0, centeredTop), behavior: 'instant' });
+          const visibleRect = map.getBoundingClientRect();
+          return { top: visibleRect.top, bottom: visibleRect.bottom, scrollY: window.scrollY, height: window.innerHeight };
+        })()`);
+        await evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        const mapScreenshot = await command("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+        await writeFile(join(screenshotDirectory, `${viewport.width}x${viewport.height}-map.png`), Buffer.from(mapScreenshot.data, "base64"));
+        const mapScroll = await evaluate(`(() => {
+          const map = document.querySelector('.graph-stage');
+          map.scrollLeft = map.scrollWidth;
+          return { left: map.scrollLeft, maximum: map.scrollWidth - map.clientWidth };
+        })()`);
+        assert.ok(mapScroll.left > 0, `${viewport.width}px: the map roads must remain horizontally scrollable.`);
+        await evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        const mapRightScreenshot = await command("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+        await writeFile(join(screenshotDirectory, `${viewport.width}x${viewport.height}-map-right.png`), Buffer.from(mapRightScreenshot.data, "base64"));
+        console.log(`${viewport.width}x${viewport.height} map screenshot: ${JSON.stringify(mapPosition)}`);
+        console.log(`${viewport.width}x${viewport.height} horizontal map scroll: ${JSON.stringify(mapScroll)}`);
+        await evaluate("window.scrollTo(0, 0)");
+      }
     }
     console.log(`${viewport.width}x${viewport.height}: no horizontal overflow; controls usable; Python result and SVG path verified.`);
   }
@@ -222,7 +307,7 @@ async function waitForResult(evaluate) {
     const result = await evaluate(`(async () => {
       const title = document.querySelector('.result-title')?.textContent ?? '';
       if (!title) return null;
-      const pathEdges = document.querySelectorAll('.svg-active-edge').length;
+      const pathEdges = document.querySelectorAll('.road-highlight').length;
       const mode = document.querySelector('[name="mode"]:checked')?.value ?? 'single';
       const algorithm = document.querySelector('[name="algorithm"]:checked')?.value ?? 'dijkstra';
       const request = {
@@ -240,15 +325,22 @@ async function waitForResult(evaluate) {
       const payload = await response.json();
       const apiResult = compare ? payload[algorithm] : payload;
       const numbers = [...document.querySelectorAll('.result-number .number')].map(element => element.textContent.trim());
+      const originNode = [...document.querySelectorAll('.svg-node')].find(node => node.dataset.nodeId === apiResult.origin);
+      const destinationNode = [...document.querySelectorAll('.svg-node')].find(node => node.dataset.nodeId === apiResult.destination);
       return {
         found: apiResult.found && title.includes('Camino encontrado'),
         pathEdges,
+        apiAlgorithm: apiResult.algorithm,
+        apiOrigin: apiResult.origin,
+        apiDestination: apiResult.destination,
         apiPath: apiResult.path,
         apiWeight: apiResult.total_weight,
         apiHops: apiResult.hops,
         renderedPath: [...document.querySelectorAll('.route-node')].map(element => element.textContent.trim()),
         renderedWeight: numbers[0],
         renderedHops: numbers[1],
+        selectedEndpoints: originNode?.classList.contains('is-origin')
+          && destinationNode?.classList.contains('is-destination'),
       };
     })()`);
     if (result) return result;

@@ -107,17 +107,24 @@
     .canvas-tag { display: flex; align-items: center; gap: 7px; color: #677b94; font-size: 10px; font-weight: 700; background: #fffdfd; border: 1px solid #e8edf4; border-radius: 7px; padding: 7px 9px; }
     .canvas-tag .tag-icon { color: var(--primary); }
     .zoom-note { color: #91a0b2; font-size: 10px; }
-    #network { width: 100%; height: auto; min-height: 340px; max-height: 490px; display: block; }
-    .svg-edge { stroke: #d4deea; stroke-width: 4; stroke-linecap: round; }
-    .svg-active-edge { fill: none; stroke-width: 8; stroke-linecap: round; opacity: .95; }
+    .graph-stage { width: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-color: #a9c2c5 #e7eef1; scrollbar-width: thin; }
+    #network { width: 100%; height: auto; min-height: 340px; display: block; }
+    .road-base { fill: none; stroke: #9eafb4; stroke-width: 26; stroke-linecap: round; stroke-linejoin: round; }
+    .road-asphalt { fill: none; stroke: #667a82; stroke-width: 19; stroke-linecap: round; stroke-linejoin: round; }
+    .road-surface { fill: none; stroke: #aebdc0; stroke-width: 13; stroke-linecap: round; stroke-linejoin: round; }
+    .road-mark { fill: none; stroke: #f8f2d8; stroke-width: 1.6; stroke-dasharray: 10 13; stroke-linecap: round; }
+    .road-highlight { fill: none; stroke: var(--route-ink); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px #fff); }
     .svg-node text { user-select: none; }
-    .svg-node .circle { fill: #fff; stroke: #b8c8da; stroke-width: 3; }
-    .svg-node .letter { fill: #526986; font-size: 21px; font-weight: 820; text-anchor: middle; dominant-baseline: central; }
-    .svg-node .name { fill: #7b8da5; font-size: 12px; font-weight: 650; text-anchor: middle; }
-    .svg-node .halo { fill: none; stroke-width: 7; opacity: .1; }
-    .edge-weight text { fill: #7890ab; font-size: 13px; font-weight: 800; text-anchor: middle; dominant-baseline: central; }
-    .edge-weight rect { fill: #fff; stroke: #e3eaf2; stroke-width: 1; }
-    .edge-weight.active rect { fill: #fff; }
+    .svg-node .circle { fill: #fff; stroke: #758b90; stroke-width: 2.5; }
+    .svg-node .letter { fill: #233540; font-size: 16px; font-weight: 850; text-anchor: middle; dominant-baseline: central; }
+    .svg-node .halo { fill: none; stroke-width: 3; opacity: .48; }
+    .svg-node .circle.is-origin { fill: #fff4df; stroke: #d4862e; stroke-width: 4; }
+    .svg-node .circle.is-destination { fill: #d9f4ed; stroke: #087f79; stroke-width: 4; }
+    .svg-node .circle.is-origin.is-route { stroke: #d4862e; }
+    .svg-node .circle.is-destination.is-route { stroke: #087f79; }
+    .edge-weight text { fill: #45616a; font-size: 11px; font-weight: 850; text-anchor: middle; dominant-baseline: central; }
+    .edge-weight rect { fill: #fff; stroke: #c9d7d9; stroke-width: 1; }
+    .edge-weight.active rect { fill: #fff; stroke: var(--route-ink); stroke-width: 2; }
     .edge-weight.active text { fill: #213751; }
     .svg-node .circle.is-route { stroke: var(--route-ink); }
     .svg-node .letter.is-route { fill: var(--route-ink); }
@@ -210,7 +217,8 @@
       .graph-heading { padding: 18px 15px 14px; }
       .graph-bottom { padding: 14px 12px 17px; }
       .graph-canvas { margin: 0 8px; }
-      #network { min-height: 255px; }
+      .graph-stage { margin: 0; }
+      #network { min-width: 860px; min-height: 0; max-height: none; }
       .canvas-top { top: 9px; left: 9px; right: 9px; }
       .zoom-note { display: none; }
       .result-strip { grid-template-columns: 1fr 1fr; gap: 11px; }
@@ -240,3 +248,4 @@
 .route-unavailable { color: #9a3d31; }
 #network { max-height: none; }
 @media (max-width: 600px) { .graph-canvas #network { max-height: none; } }
+.geometry-error { margin: 10px 15px 0; }

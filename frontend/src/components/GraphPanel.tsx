@@ -1,12 +1,15 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 
 import { algorithmDetails } from "../data/algorithmDetails";
+import { canonicalEdgeKey, getNodePosition, getRoadGeometry, simulatedMapGeometry, validateMapGeometry } from "../data/simulatedMapGeometry";
 import type { GraphResponse, RouteResult } from "../types/api";
 import { Icon } from "./Icon";
 
 interface GraphPanelProps {
   graph: GraphResponse | null;
   result: RouteResult | null;
+  origin: string;
+  destination: string;
   algorithm: RouteResult["algorithm"];
   showWeights: boolean;
   onToggleWeights: (showWeights: boolean) => void;
@@ -14,55 +17,29 @@ interface GraphPanelProps {
   errorMessage: string | null;
 }
 
-interface Point {
-  x: number;
-  y: number;
-}
-
-const prototypeLayout: Record<string, { desktop: Point; mobile: Point }> = {
-  A: { desktop: { x: 130, y: 267 }, mobile: { x: 240, y: 112 } },
-  B: { desktop: { x: 349, y: 115 }, mobile: { x: 85, y: 285 } },
-  C: { desktop: { x: 657, y: 115 }, mobile: { x: 85, y: 490 } },
-  D: { desktop: { x: 874, y: 267 }, mobile: { x: 240, y: 675 } },
-  E: { desktop: { x: 349, y: 426 }, mobile: { x: 395, y: 285 } },
-  F: { desktop: { x: 657, y: 426 }, mobile: { x: 395, y: 490 } },
-};
-
 export function GraphPanel({
   graph,
   result,
+  origin,
+  destination,
   algorithm,
   showWeights,
   onToggleWeights,
   isLoading,
   errorMessage,
 }: GraphPanelProps) {
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window.matchMedia === "function"
-      ? window.matchMedia("(max-width: 600px)").matches
-      : window.innerWidth <= 600,
-  );
-
-  useEffect(() => {
-    if (typeof window.matchMedia !== "function") return undefined;
-    const media = window.matchMedia("(max-width: 600px)");
-    const update = () => setIsMobile(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
-
   const routeColor = algorithmDetails[algorithm].color;
   const path = result?.path ?? null;
   const pathNodes = new Set(path ?? []);
   const pathEdges = new Set<string>();
   if (path) {
     for (let index = 0; index < path.length - 1; index += 1) {
-      pathEdges.add(edgeKey(path[index], path[index + 1]));
+      pathEdges.add(canonicalEdgeKey(path[index], path[index + 1]));
     }
   }
   const visitedOrder = result?.visited_order ?? [];
   const visitIndex = new Map(visitedOrder.map((node, index) => [node, index + 1]));
+  const geometryIssues = graph ? validateMapGeometry(graph) : [];
 
   return (
     <section className="panel graph-panel" aria-label="Visualización de grafo y resultado">
@@ -89,24 +66,33 @@ export function GraphPanel({
       <div className="graph-canvas">
         <div className="canvas-top">
           <div className="canvas-tag"><Icon name="graph" size={13} />Grafo no dirigido</div>
-          <div className="zoom-note">Posiciones visuales generadas por la interfaz</div>
+          <div className="zoom-note">Trazados viales simulados · geometría SVG</div>
         </div>
         {graph ? (
-          <GraphSvg
-            graph={graph}
-            isMobile={isMobile}
-            pathNodes={pathNodes}
-            pathEdges={pathEdges}
-            visitIndex={visitIndex}
-            routeColor={routeColor}
-            showWeights={showWeights}
-          />
+          <div className="graph-stage">
+            <GraphSvg
+              graph={graph}
+              origin={origin}
+              destination={destination}
+              pathNodes={pathNodes}
+              pathEdges={pathEdges}
+              visitIndex={visitIndex}
+              routeColor={routeColor}
+              showWeights={showWeights}
+            />
+          </div>
         ) : (
           <div className="graph-empty" role={errorMessage ? "alert" : "status"}>
             {errorMessage ?? (isLoading ? "Cargando grafo desde FastAPI…" : "El grafo no está disponible.")}
           </div>
         )}
       </div>
+
+      {geometryIssues.length > 0 && (
+        <div className="api-error geometry-error" role="alert">
+          No se puede representar toda la topología recibida: {geometryIssues.join(" ")}
+        </div>
+      )}
 
       {graph && (
         <div className="graph-bottom">
@@ -160,7 +146,8 @@ export function GraphPanel({
 
 interface GraphSvgProps {
   graph: GraphResponse;
-  isMobile: boolean;
+  origin: string;
+  destination: string;
   pathNodes: Set<string>;
   pathEdges: Set<string>;
   visitIndex: Map<string, number>;
@@ -168,13 +155,13 @@ interface GraphSvgProps {
   showWeights: boolean;
 }
 
-function GraphSvg({ graph, isMobile, pathNodes, pathEdges, visitIndex, routeColor, showWeights }: GraphSvgProps) {
-  const layout = layoutNodes(graph.nodes, isMobile);
-  const width = isMobile ? 480 : 1000;
-  const height = isMobile ? Math.max(790, Math.ceil(graph.nodes.length / 2) * 150 + 100) : 530;
-  const points = new Map(graph.nodes.map((node) => [node, layout.get(node) ?? { x: width / 2, y: height / 2 }]));
+function GraphSvg({ graph, origin, destination, pathNodes, pathEdges, visitIndex, routeColor, showWeights }: GraphSvgProps) {
+  const { width, height } = simulatedMapGeometry.viewBox;
   const description = `${graph.nodes.length} nodos y ${graph.edges.length} aristas recibidos desde FastAPI.`;
-  const routeStyle = { "--route-ink": routeColor } as CSSProperties;
+  const renderedEdges = graph.edges.filter((edge, index) =>
+    graph.edges.findIndex((candidate) => canonicalEdgeKey(candidate.source, candidate.target)
+      === canonicalEdgeKey(edge.source, edge.target)) === index
+      && getRoadGeometry(edge.source, edge.target) !== undefined);
 
   return (
     <svg
@@ -184,109 +171,94 @@ function GraphSvg({ graph, isMobile, pathNodes, pathEdges, visitIndex, routeColo
       aria-labelledby="graphTitle graphDesc"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <title id="graphTitle">Grafo recibido desde FastAPI</title>
-      <desc id="graphDesc">{description} Los indicadores numerados muestran visited_order; las líneas coloreadas muestran path.</desc>
+      <title id="graphTitle">Red logística ficticia recibida desde FastAPI</title>
+      <desc id="graphDesc">{description} Los indicadores numerados muestran visited_order; las carreteras resaltadas muestran path.</desc>
       <defs>
-        <pattern id="dotgrid" width="24" height="24" patternUnits="userSpaceOnUse">
-          <circle cx="2" cy="2" r="1" fill="#dce5f0" opacity=".75" />
+        <pattern id="mapgrid" width="34" height="34" patternUnits="userSpaceOnUse">
+          <path d="M34 0H0V34" fill="none" stroke="#cbd9df" strokeWidth=".9" opacity=".55" />
         </pattern>
       </defs>
-      <rect width={width} height={height} fill="url(#dotgrid)" />
+      <rect width={width} height={height} fill="#e9f0f2" />
+      <rect width={width} height={height} fill="url(#mapgrid)" />
       <g id="edgesLayer">
-        {graph.edges.map((edge) => {
-          const from = points.get(edge.source);
-          const to = points.get(edge.target);
-          if (!from || !to) return null;
-          return <line key={edgeKey(edge.source, edge.target)} x1={from.x} y1={from.y} x2={to.x} y2={to.y} className="svg-edge" />;
+        {renderedEdges.map((edge) => {
+          const road = getRoadGeometry(edge.source, edge.target);
+          if (!road) return null;
+          const key = canonicalEdgeKey(edge.source, edge.target);
+          return (
+            <g key={key} data-edge-key={key}>
+              <path d={road.path} className="road-base" />
+              <path d={road.path} className="road-asphalt" />
+              <path d={road.path} className="road-surface" />
+              <path d={road.path} className="road-mark" />
+            </g>
+          );
         })}
       </g>
       <g id="routeLayer">
-        {graph.edges.map((edge) => {
-          const key = edgeKey(edge.source, edge.target);
+        {renderedEdges.map((edge) => {
+          const key = canonicalEdgeKey(edge.source, edge.target);
           if (!pathEdges.has(key)) return null;
-          const from = points.get(edge.source);
-          const to = points.get(edge.target);
-          if (!from || !to) return null;
-          return <line key={key} x1={from.x} y1={from.y} x2={to.x} y2={to.y} className="svg-active-edge" stroke={routeColor} />;
+          const road = getRoadGeometry(edge.source, edge.target);
+          if (!road) return null;
+          return <path key={key} d={road.path} data-edge-key={key} className="road-highlight" style={{ "--route-ink": routeColor } as CSSProperties} />;
         })}
       </g>
       {showWeights && (
         <g id="weightsLayer">
-          {graph.edges.map((edge) => {
-            const from = points.get(edge.source);
-            const to = points.get(edge.target);
-            if (!from || !to) return null;
-            const x = (from.x + to.x) / 2;
-            const y = (from.y + to.y) / 2 - 8;
-            const width = String(edge.weight).length * 10 + 20;
+          {renderedEdges.map((edge) => {
+            const road = getRoadGeometry(edge.source, edge.target);
+            if (!road) return null;
+            const { x, y } = road.label;
+            const labelWidth = String(edge.weight).length * 10 + 20;
+            const key = canonicalEdgeKey(edge.source, edge.target);
             return (
-              <g className={`edge-weight${pathEdges.has(edgeKey(edge.source, edge.target)) ? " active" : ""}`} key={edgeKey(edge.source, edge.target)}>
-                <rect x={x - width / 2} y={y - 12} width={width} height="24" rx="8" />
-                <text x={x} y={y + 1}>{edge.weight}</text>
+              <g
+                className={`edge-weight${pathEdges.has(key) ? " active" : ""}`}
+                data-edge-key={key}
+                key={key}
+                style={pathEdges.has(key) ? { "--route-ink": routeColor } as CSSProperties : undefined}
+              >
+                <rect x={x - labelWidth / 2} y={y - 13} width={labelWidth} height="25" rx="9" />
+                <text x={x} y={y + 4}>{edge.weight}</text>
               </g>
             );
           })}
         </g>
       )}
       <g id="nodesLayer">
-        {graph.nodes.map((id) => {
-          const position = points.get(id);
+        {graph.nodes.filter((id, index) => graph.nodes.indexOf(id) === index).map((id) => {
+          const position = getNodePosition(id);
           if (!position) return null;
           const isOnPath = pathNodes.has(id);
+          const isOrigin = id === origin;
+          const isDestination = id === destination;
           const order = visitIndex.get(id);
           return (
-            <g className={`svg-node${order ? " is-visited" : ""}${isOnPath ? " is-path" : ""}`} data-node-id={id} key={id}>
-              {isOnPath && <circle cx={position.x} cy={position.y} r="36" stroke={routeColor} className="halo" />}
+            <g
+              className={`svg-node${order ? " is-visited" : ""}${isOnPath ? " is-path" : ""}${isOrigin ? " is-origin" : ""}${isDestination ? " is-destination" : ""}`}
+              data-node-id={id}
+              key={id}
+              style={isOnPath ? { "--route-ink": routeColor } as CSSProperties : undefined}
+            >
+              {isOnPath && <circle cx={position.x} cy={position.y} r="29" stroke={routeColor} className="halo" />}
               <circle
                 cx={position.x}
                 cy={position.y}
-                r="30"
-                className={`circle${isOnPath ? " is-route" : ""}${order ? " is-visited" : ""}`}
-                style={isOnPath ? routeStyle : undefined}
-                strokeWidth={isOnPath ? 4 : 3}
+                r="22"
+                className={`circle${isOnPath ? " is-route" : ""}${order ? " is-visited" : ""}${isOrigin ? " is-origin" : ""}${isDestination ? " is-destination" : ""}`}
               />
               {order && (
                 <g className="visit-order-badge" aria-label={`Visit order ${order}`}>
-                  <circle cx={position.x + 23} cy={position.y - 23} r="12" />
-                  <text x={position.x + 23} y={position.y - 23}>{order}</text>
+                  <circle cx={position.x + 19} cy={position.y - 19} r="11" />
+                  <text x={position.x + 19} y={position.y - 19}>{order}</text>
                 </g>
               )}
-              <text x={position.x} y={position.y + 1} className={`letter${isOnPath ? " is-route" : ""}`} style={isOnPath ? routeStyle : undefined}>{id}</text>
-              <text x={position.x} y={position.y + 55} className="name">{id}</text>
+              <text x={position.x} y={position.y + 1} className={`letter${isOnPath ? " is-route" : ""}`}>{id}</text>
             </g>
           );
         })}
       </g>
     </svg>
   );
-}
-
-function layoutNodes(nodes: string[], isMobile: boolean): Map<string, Point> {
-  const prototypeNodes = Object.keys(prototypeLayout);
-  const matchesPrototype = nodes.length === prototypeNodes.length && prototypeNodes.every((node) => nodes.includes(node));
-  if (matchesPrototype) {
-    return new Map(nodes.map((node) => [node, prototypeLayout[node][isMobile ? "mobile" : "desktop"]]));
-  }
-
-  const columns = isMobile ? 2 : Math.max(1, Math.ceil(Math.sqrt(nodes.length * 1.6)));
-  const rows = Math.ceil(nodes.length / columns);
-  const xStart = isMobile ? 120 : 100;
-  const xEnd = isMobile ? 360 : 900;
-  const yStart = isMobile ? 80 : 90;
-  const yEnd = isMobile ? Math.max(80, 80 + (rows - 1) * 150) : 440;
-  const points = new Map<string, Point>();
-
-  nodes.forEach((node, index) => {
-    const row = Math.floor(index / columns);
-    const column = index % columns;
-    const rowCount = Math.min(columns, nodes.length - row * columns);
-    const x = rowCount === 1 ? (xStart + xEnd) / 2 : xStart + (column * (xEnd - xStart)) / (rowCount - 1);
-    const y = rows === 1 ? (isMobile ? 380 : 265) : yStart + (row * (yEnd - yStart)) / (rows - 1);
-    points.set(node, { x, y });
-  });
-  return points;
-}
-
-function edgeKey(source: string, target: string): string {
-  return JSON.stringify([source, target].sort());
 }
