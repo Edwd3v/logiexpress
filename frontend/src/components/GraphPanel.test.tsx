@@ -34,7 +34,7 @@ const result: RouteResult = {
   found: true,
 };
 
-function renderGraph(inputGraph = graph, inputResult: RouteResult | null = result) {
+function renderGraph(inputGraph = graph, inputResult: RouteResult | null = result, showExploration = false, showWeights = true) {
   return render(
     <GraphPanel
       graph={inputGraph}
@@ -42,8 +42,10 @@ function renderGraph(inputGraph = graph, inputResult: RouteResult | null = resul
       origin={inputResult?.origin ?? "A"}
       destination={inputResult?.destination ?? "D"}
       algorithm="dijkstra"
-      showWeights
+      showWeights={showWeights}
       onToggleWeights={vi.fn()}
+      showExploration={showExploration}
+      onToggleExploration={vi.fn()}
       isLoading={false}
       errorMessage={null}
     />,
@@ -73,13 +75,27 @@ describe("GraphPanel simulated road geometry", () => {
     expect(highlighted.map((road) => road.dataset.edgeKey)).toEqual([
       '["A","E"]', '["E","F"]', '["D","F"]',
     ]);
+    expect([...document.querySelectorAll(".edge-weight.active")].map((weight) => weight.getAttribute("data-edge-key"))).toEqual(
+      highlighted.map((road) => road.dataset.edgeKey),
+    );
     expect(document.querySelector('[data-node-id="A"]')?.classList.contains("is-origin")).toBe(true);
     expect(document.querySelector('[data-node-id="A"]')?.classList.contains("is-path")).toBe(true);
     expect(document.querySelector('[data-node-id="D"]')?.classList.contains("is-destination")).toBe(true);
     expect(document.querySelector('[data-node-id="D"]')?.classList.contains("is-path")).toBe(true);
     expect(document.querySelector(".visit-sequence")?.textContent).toContain("A · Centro Occidente");
-    expect(document.querySelector(".path-sequence")?.textContent).toContain("D · Terminal Oriente");
     expect(document.querySelector(".route")?.textContent).toContain("E · Microhub Central");
+    expect(document.querySelector(".route")?.textContent).toContain("D · Terminal Oriente");
+  });
+
+  it("hides exploration markers by default", () => {
+    renderGraph();
+    expect((screen.getByLabelText("Mostrar exploración") as HTMLInputElement).checked).toBe(false);
+    expect(document.querySelectorAll(".visit-order-badge")).toHaveLength(0);
+  });
+
+  it("renders only the API visited order when exploration is enabled", () => {
+    renderGraph(graph, result, true);
+    expect(document.querySelectorAll(".visit-order-badge")).toHaveLength(result.visited_order.length);
   });
 
   it("exposes a keyboard-scrollable map and a non-color-only endpoint legend", () => {

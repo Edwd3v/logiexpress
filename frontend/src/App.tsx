@@ -55,6 +55,12 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timeout = window.setTimeout(() => setToastMessage(""), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [toastMessage]);
+
   function updateState(patch: Partial<DashboardState>) {
     const endpointsChanged = (patch.origin ?? state.origin) !== state.origin
       || (patch.destination ?? state.destination) !== state.destination;
@@ -177,6 +183,8 @@ export default function App() {
               algorithm={state.algorithm}
               showWeights={state.showWeights}
               onToggleWeights={(showWeights) => updateState({ showWeights })}
+              showExploration={state.showExploration}
+              onToggleExploration={(showExploration) => updateState({ showExploration })}
               isLoading={graphLoading || routeLoading}
               errorMessage={resultMessage}
             />

@@ -14,6 +14,8 @@ interface GraphPanelProps {
   algorithm: RouteResult["algorithm"];
   showWeights: boolean;
   onToggleWeights: (showWeights: boolean) => void;
+  showExploration: boolean;
+  onToggleExploration: (showExploration: boolean) => void;
   isLoading: boolean;
   errorMessage: string | null;
 }
@@ -26,6 +28,8 @@ export function GraphPanel({
   algorithm,
   showWeights,
   onToggleWeights,
+  showExploration,
+  onToggleExploration,
   isLoading,
   errorMessage,
 }: GraphPanelProps) {
@@ -39,7 +43,7 @@ export function GraphPanel({
     }
   }
   const visitedOrder = result?.visited_order ?? [];
-  const visitIndex = new Map(visitedOrder.map((node, index) => [node, index + 1]));
+  const visitIndex = new Map(showExploration ? visitedOrder.map((node, index) => [node, index + 1]) : []);
   const geometryIssues = graph ? validateMapGeometry(graph) : [];
 
   return (
@@ -59,6 +63,14 @@ export function GraphPanel({
               onChange={(event) => onToggleWeights(event.target.checked)}
             />
             Mostrar pesos
+          </label>
+          <label className="toggle-label">
+            <input
+              type="checkbox"
+              checked={showExploration}
+              onChange={(event) => onToggleExploration(event.target.checked)}
+            />
+            Mostrar exploración
           </label>
           <span className="live-pill">FastAPI</span>
         </div>
@@ -95,6 +107,7 @@ export function GraphPanel({
               routeColor={routeColor}
               routeTextColor={algorithmDetails[algorithm].textColor}
               showWeights={showWeights}
+              showExploration={showExploration}
             />
           </div>
         ) : (
@@ -113,8 +126,8 @@ export function GraphPanel({
       {graph && (
         <div className="graph-bottom">
           <div className="legend">
-            <span className="legend-item"><span className="legend-line" style={{ background: routeColor }} />Camino (`path`)</span>
-            <span className="legend-item"><span className="visit-legend" />Orden de visita</span>
+            <span className="legend-item"><span className="legend-line" style={{ background: routeColor }} />Camino</span>
+            <span className={`legend-item exploration-legend${showExploration ? " is-visible" : ""}`}><span className="visit-legend" />Orden de exploración</span>
             <span className="legend-item"><span className="legend-line" />Conexión</span>
             <span className="legend-item"><span className="endpoint-marker origin-marker" aria-hidden="true">O</span>Origen · {locationLabel(origin)}</span>
             <span className="legend-item"><span className="endpoint-marker destination-marker" aria-hidden="true">D</span>Destino · {locationLabel(destination)}</span>
@@ -124,9 +137,10 @@ export function GraphPanel({
           {result && (
             <div className="result-strip" aria-live="polite" aria-atomic="true">
               <div className="route-result-copy">
-                <div className="result-kicker result-title">
+                <div className={`result-kicker result-title ${result.found ? "is-found" : "is-unreachable"}`}>
                   <Icon name={result.found ? "check" : "info"} />
-                  <span>{result.found ? "Camino encontrado" : "No existe una ruta"} · {algorithmDetails[result.algorithm].name}</span>
+                  <span className="result-algorithm">{algorithmDetails[result.algorithm].name}</span>
+                  <span className="result-state">{result.found ? "Camino encontrado" : "Destino inaccesible"}</span>
                 </div>
                 <div className="route">
                   {result.path ? result.path.map((node, index) => (
@@ -134,23 +148,21 @@ export function GraphPanel({
                       {index > 0 && <span className="route-arrow" aria-hidden="true">→</span>}
                       <span className="route-node" data-node-id={node} style={{ background: algorithmDetails[result.algorithm].pale, color: algorithmDetails[result.algorithm].textColor }}>{locationLabel(node)}</span>
                     </span>
-                  )) : <span className="route-unavailable">Sin camino entre {locationLabel(result.origin)} y {locationLabel(result.destination)}.</span>}
+                  )) : <span className="route-unavailable">No hay camino entre {locationLabel(result.origin)} y {locationLabel(result.destination)}.</span>}
                 </div>
-                <div className="visit-sequence">
-                  <strong>Orden de visita (`visited_order`):</strong>
-                  <span>{result.visited_order.length ? result.visited_order.map(locationLabel).join(" → ") : "Sin nodos visitados"}</span>
-                </div>
-                <div className="path-sequence">
-                  <strong>Camino (`path`):</strong>
-                  <span>{result.path?.map(locationLabel).join(" → ") ?? "No disponible"}</span>
-                </div>
+                <details className="visit-sequence">
+                  <summary>Orden de exploración · {result.visited_order.length} ubicaciones</summary>
+                  <p>{result.visited_order.length ? result.visited_order.map(locationLabel).join(" → ") : "Sin ubicaciones exploradas"}</p>
+                </details>
               </div>
-              <div className="result-number"><div className="number">{result.total_weight ?? "—"}</div><small>Costo total</small></div>
-              <div className="result-number"><div className="number">{result.hops ?? "—"}</div><small>Saltos</small></div>
+              <div className="result-metrics" aria-label="Indicadores del camino">
+                <div className="result-number"><div className="number">{result.total_weight ?? "—"}</div><small>Costo total</small></div>
+                <div className="result-number"><div className="number">{result.hops ?? "—"}</div><small>Saltos</small></div>
+              </div>
             </div>
           )}
           {!result && !isLoading && !errorMessage && (
-            <div className="result-prompt" role="status">Selecciona origen y destino y ejecuta un análisis.</div>
+            <div className="result-prompt" role="status">Análisis pendiente. Selecciona origen y destino y ejecuta un análisis.</div>
           )}
           <div className="explanation">
             <Icon name="info" size={15} />
@@ -172,9 +184,10 @@ interface GraphSvgProps {
   routeColor: string;
   routeTextColor: string;
   showWeights: boolean;
+  showExploration: boolean;
 }
 
-function GraphSvg({ graph, origin, destination, pathNodes, pathEdges, visitIndex, routeColor, routeTextColor, showWeights }: GraphSvgProps) {
+function GraphSvg({ graph, origin, destination, pathNodes, pathEdges, visitIndex, routeColor, routeTextColor, showWeights, showExploration }: GraphSvgProps) {
   const { width, height } = simulatedMapGeometry.viewBox;
   const description = `${graph.nodes.length} nodos y ${graph.edges.length} aristas recibidos desde FastAPI.`;
   const renderedEdges = graph.edges.filter((edge, index) =>
@@ -191,13 +204,13 @@ function GraphSvg({ graph, origin, destination, pathNodes, pathEdges, visitIndex
       xmlns="http://www.w3.org/2000/svg"
     >
       <title id="graphTitle">Red logística ficticia recibida desde FastAPI</title>
-      <desc id="graphDesc">{description} Los indicadores numerados muestran visited_order; las carreteras resaltadas muestran path.</desc>
+      <desc id="graphDesc">{description} {showExploration ? "Los indicadores numerados muestran el orden de exploración." : "Los indicadores de exploración están ocultos."} Las carreteras resaltadas muestran el camino reconstruido.</desc>
       <defs>
         <pattern id="mapgrid" width="34" height="34" patternUnits="userSpaceOnUse">
-          <path d="M34 0H0V34" fill="none" stroke="#cbd9df" strokeWidth=".9" opacity=".55" />
+          <path d="M34 0H0V34" fill="none" stroke="var(--map-grid)" strokeWidth=".9" opacity=".55" />
         </pattern>
       </defs>
-      <rect width={width} height={height} fill="#e9f0f2" />
+      <rect width={width} height={height} fill="var(--map)" />
       <rect width={width} height={height} fill="url(#mapgrid)" />
       <g id="edgesLayer">
         {renderedEdges.map((edge) => {
@@ -236,7 +249,7 @@ function GraphSvg({ graph, origin, destination, pathNodes, pathEdges, visitIndex
                 className={`edge-weight${pathEdges.has(key) ? " active" : ""}`}
                 data-edge-key={key}
                 key={key}
-                style={pathEdges.has(key) ? { "--route-ink": routeColor } as CSSProperties : undefined}
+                style={pathEdges.has(key) ? { "--route-ink": routeColor, "--route-label-ink": routeTextColor } as CSSProperties : undefined}
               >
                 <rect x={x - labelWidth / 2} y={y - 13} width={labelWidth} height="25" rx="9" />
                 <text x={x} y={y + 4}>{edge.weight}</text>
@@ -260,6 +273,7 @@ function GraphSvg({ graph, origin, destination, pathNodes, pathEdges, visitIndex
               key={id}
               style={isOnPath ? { "--route-ink": routeColor, "--route-text": routeTextColor } as CSSProperties : undefined}
             >
+              <title>{locationLabel(id)} · Nodo {id}</title>
               {isOnPath && <circle cx={position.x} cy={position.y} r="29" stroke={routeColor} className="halo" />}
               <circle
                 cx={position.x}

@@ -54,7 +54,7 @@ describe("API-backed dashboard", () => {
     fireEvent.change(screen.getByLabelText("Destino"), { target: { value: "R" } });
     fireEvent.click(screen.getByRole("button", { name: "Ejecutar análisis" }));
 
-    await screen.findByText("Camino encontrado · Dijkstra");
+    await waitFor(() => expect(document.querySelector(".result-title")?.textContent).toContain("Camino encontrado"));
     expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
       body: JSON.stringify({ origin: "A", destination: "R", algorithm: "dijkstra" }),
     });
@@ -90,12 +90,12 @@ describe("API-backed dashboard", () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/routes/compare");
-    fireEvent.click(screen.getByRole("button", { name: /Destacar ruta BFS/ }));
-    await screen.findByText("Camino encontrado · BFS");
-    expect(screen.getAllByText(/Orden de visita/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: /Ver resultado BFS/ }));
+    await waitFor(() => expect(document.querySelector(".result-title")?.textContent).toContain("Camino encontrado"));
+    expect(screen.getAllByText(/Orden de exploración/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Camino encontrado/)).toBeTruthy();
-    expect(document.querySelector(".path-sequence")?.textContent).toContain("A · Centro Occidente");
-    expect(document.querySelector(".path-sequence")?.textContent).toContain("F · Consolidación Sur");
+    expect(document.querySelector(".route")?.textContent).toContain("A · Centro Occidente");
+    expect(document.querySelector(".route")?.textContent).toContain("F · Consolidación Sur");
     expect(document.querySelectorAll(".road-highlight")).toHaveLength(2);
   });
 
@@ -113,7 +113,7 @@ describe("API-backed dashboard", () => {
     fireEvent.click(screen.getByRole("radio", { name: /BFS/ }));
     fireEvent.click(screen.getByRole("button", { name: "Ejecutar análisis" }));
 
-    await screen.findByText("Camino encontrado · BFS");
+    await waitFor(() => expect(document.querySelector(".result-title")?.textContent).toContain("Camino encontrado"));
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/routes/compute");
     expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
       body: JSON.stringify({ origin: "A", destination: "F", algorithm: "bfs" }),
@@ -135,7 +135,7 @@ describe("API-backed dashboard", () => {
     fireEvent.change(screen.getByLabelText("Destino"), { target: { value: "F" } });
     fireEvent.click(screen.getByRole("button", { name: /Mostrar ejemplo|Ejecutar análisis/ }));
 
-    await screen.findByText(/No existe una ruta|Ruta inexistente|No se encontró una ruta/i);
+    await screen.findByText("Destino inaccesible");
     expect(document.querySelectorAll(".road-highlight")).toHaveLength(0);
   });
 
@@ -197,7 +197,7 @@ describe("API-backed dashboard", () => {
     await waitFor(() => expect(document.querySelectorAll(".road-highlight")).toHaveLength(1));
     finishFirst(Response.json(firstComparison));
     await waitFor(() => expect(document.querySelectorAll(".road-highlight")).toHaveLength(1));
-    expect(document.querySelector(".path-sequence")?.textContent).toContain("A · Centro Occidente");
-    expect(document.querySelector(".path-sequence")?.textContent).toContain("Microhub Central");
+    expect(document.querySelector(".route")?.textContent).toContain("A · Centro Occidente");
+    expect(document.querySelector(".route")?.textContent).toContain("Microhub Central");
   });
 });

@@ -18,7 +18,7 @@ export function Sidebar({ activeSection, onNavigate }: SidebarProps) {
     <aside className="sidebar" aria-label="Navegación principal">
       <a className="brand" href="#inicio" aria-label="LogiExpress, volver al inicio">
         <div className="brand-mark"><Icon name="brand" size={23} /></div>
-        <div><strong>LogiExpress</strong><small>Route Intelligence</small></div>
+        <div><strong>LogiExpress</strong><small>Centro de operaciones</small></div>
       </a>
       <div className="nav-label">Espacio de trabajo</div>
       <nav aria-label="Secciones">

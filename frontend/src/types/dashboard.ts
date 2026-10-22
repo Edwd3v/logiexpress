@@ -8,6 +8,7 @@ export interface DashboardState {
   algorithm: AlgorithmName;
   mode: AnalysisMode;
   showWeights: boolean;
+  showExploration: boolean;
 }
 
 export const initialDashboardState: DashboardState = {
@@ -16,4 +17,5 @@ export const initialDashboardState: DashboardState = {
   algorithm: "dijkstra",
   mode: "compare",
   showWeights: true,
+  showExploration: false,
 };

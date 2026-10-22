@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
@@ -37,7 +37,10 @@ async function renderReady() {
   return fetchMock;
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 describe("LogiExpress dashboard", () => {
   it("presents the workspace using the live API graph", async () => {
@@ -52,9 +55,9 @@ describe("LogiExpress dashboard", () => {
   it("selects a returned comparison result for SVG highlighting", async () => {
     const fetchMock = await renderReady();
     fireEvent.click(screen.getByRole("button", { name: "Ejecutar análisis" }));
-    await screen.findByText("Camino encontrado · Dijkstra");
+    await waitFor(() => expect(document.querySelector(".result-title")?.textContent).toContain("Camino encontrado"));
 
-    const bfsCard = screen.getByRole("button", { name: /Destacar ruta BFS/ });
+    const bfsCard = screen.getByRole("button", { name: /Ver resultado BFS/ });
     fireEvent.click(bfsCard);
     expect(bfsCard.getAttribute("aria-pressed")).toBe("true");
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/routes/compare");
@@ -80,6 +83,44 @@ describe("LogiExpress dashboard", () => {
     expect(document.querySelectorAll(".edge-weight")).toHaveLength(2);
   });
 
+  it("keeps exploration markers opt-in and toggles only that visual layer", async () => {
+    await renderReady();
+    fireEvent.click(screen.getByRole("button", { name: "Ejecutar análisis" }));
+    await waitFor(() => expect(document.querySelector(".result-title")?.textContent).toContain("Camino encontrado"));
+
+    const roads = document.querySelectorAll(".road-surface").length;
+    const path = [...document.querySelectorAll(".road-highlight")].map((road) => road.getAttribute("data-edge-key"));
+    expect(document.querySelectorAll(".visit-order-badge")).toHaveLength(0);
+
+    const exploration = screen.getByLabelText("Mostrar exploración");
+    fireEvent.click(exploration);
+    expect(document.querySelectorAll(".visit-order-badge")).toHaveLength(route.visited_order.length);
+    fireEvent.click(screen.getByLabelText("Mostrar pesos"));
+    expect(document.querySelectorAll(".edge-weight")).toHaveLength(0);
+    expect(document.querySelectorAll(".road-surface")).toHaveLength(roads);
+    expect([...document.querySelectorAll(".road-highlight")].map((road) => road.getAttribute("data-edge-key"))).toEqual(path);
+  });
+
+  it("distinguishes an unrun comparison from an inaccessible destination", async () => {
+    await renderReady();
+
+    expect(screen.getByText("Ejecuta una comparación para consultar los tres caminos.")).toBeTruthy();
+    expect(screen.queryByText("No se encontró ruta")).toBeNull();
+  });
+
+  it("dismisses reset feedback automatically without making it interactive", async () => {
+    await renderReady();
+    vi.useFakeTimers();
+    fireEvent.click(screen.getByRole("button", { name: "Restablecer" }));
+
+    const notification = screen.getByText("Controles restablecidos.");
+    expect(notification.getAttribute("role")).toBe("status");
+    expect(notification.getAttribute("aria-live")).toBe("polite");
+    expect(notification.className).toContain("toast");
+    act(() => vi.advanceTimersByTime(4000));
+    expect(screen.queryByText("Controles restablecidos.")).toBeNull();
+  });
+
   it("supports comparison-section navigation", async () => {
     await renderReady();
     const navigation = screen.getByRole("link", { name: /Comparar rutas/ });
@@ -97,7 +138,7 @@ describe("LogiExpress dashboard", () => {
     expect(screen.getAllByRole("option", { name: "F · Consolidación Sur" })).toHaveLength(2);
 
     fireEvent.click(screen.getByRole("button", { name: "Ejecutar análisis" }));
-    await screen.findByText("Camino encontrado · Dijkstra");
+    await waitFor(() => expect(document.querySelector(".result-title")?.textContent).toContain("Camino encontrado"));
     expect(document.querySelector(".route")?.textContent).toContain("A · Centro Occidente");
     expect(document.querySelector(".route")?.textContent).toContain("F · Consolidación Sur");
   });

@@ -4,13 +4,18 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createServer } from "node:net";
 
-const viewports = [
+const allViewports = [
   { width: 390, height: 844 },
   { width: 375, height: 812 },
   { width: 768, height: 1024 },
   { width: 1366, height: 768 },
   { width: 1440, height: 900 },
 ];
+const requestedViewport = process.env.RESPONSIVE_VIEWPORT;
+const viewports = requestedViewport
+  ? allViewports.filter(viewport => `${viewport.width}x${viewport.height}` === requestedViewport)
+  : allViewports;
+assert.ok(viewports.length > 0, `Unknown RESPONSIVE_VIEWPORT: ${requestedViewport}`);
 const pageUrl = process.env.LOGIEXPRESS_TEST_URL ?? "http://127.0.0.1:5173/";
 const screenshotDirectory = process.env.RESPONSIVE_SCREENSHOT_DIR;
 const chrome = findChrome();
@@ -30,7 +35,7 @@ const browser = spawn(
     `--user-data-dir=${profile}`,
     "about:blank",
   ],
-  { stdio: "ignore" },
+  { stdio: "ignore", detached: process.platform !== "win32" },
 );
 
 let socket;
@@ -112,7 +117,7 @@ try {
       const style = getComputedStyle(document.activeElement);
       return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth, outlineColor: style.outlineColor };
     })()`);
-    assert.deepEqual(navigationFocus, { outlineStyle: "solid", outlineWidth: "3px", outlineColor: "rgb(155, 194, 255)" }, `${viewport.width}px: keyboard focus must have a visible high-contrast indicator`);
+    assert.deepEqual(navigationFocus, { outlineStyle: "solid", outlineWidth: "3px", outlineColor: "rgb(0, 104, 95)" }, `${viewport.width}px: keyboard focus must have a visible high-contrast indicator`);
     await evaluate("document.activeElement.blur()");
 
     const before = await evaluate(`(() => {
@@ -188,8 +193,9 @@ try {
     }
     console.log(`${viewport.width}x${viewport.height}: inner=${before.viewport}x${before.viewportHeight}, document=${before.document}px, map=${before.mapViewport.clientWidth}/${before.mapViewport.contentWidth}px, weight-label≈${before.mapViewport.weightTextPx.toFixed(1)}px, swap=${before.swapTarget.width}x${before.swapTarget.height}px.`);
 
+    let routeRequestCount = await getRouteRequestCount(evaluate);
     await evaluate(`document.querySelector('form.controls button[type="submit"]').click()`);
-    const result = await waitForResult(evaluate);
+    const result = await waitForResult(evaluate, { algorithm: "dijkstra", origin: "A", destination: "D" }, routeRequestCount);
     assert.ok(result.found, `${viewport.width}px: Python route result must be found`);
     assert.ok(result.pathEdges > 0, `${viewport.width}px: the SVG must highlight the returned path`);
     assert.deepEqual(result.renderedPath, result.apiPath, `${viewport.width}px: SVG route must match Python path`);
@@ -198,8 +204,9 @@ try {
 
     for (const algorithm of ["bfs", "dfs"]) {
       await evaluate(`document.querySelector('input[name="algorithm"][value="${algorithm}"]').click()`);
+      routeRequestCount = await getRouteRequestCount(evaluate);
       await evaluate(`document.querySelector('form.controls button[type="submit"]').click()`);
-      const algorithmResult = await waitForResult(evaluate);
+      const algorithmResult = await waitForResult(evaluate, { algorithm, origin: "A", destination: "D" }, routeRequestCount);
       assert.equal(algorithmResult.apiAlgorithm, algorithm, `${viewport.width}px: ${algorithm} must come from FastAPI`);
       assert.ok(algorithmResult.found, `${viewport.width}px: ${algorithm} route must be found`);
       assert.deepEqual(algorithmResult.renderedPath, algorithmResult.apiPath, `${viewport.width}px: ${algorithm} SVG route must match Python`);
@@ -207,8 +214,9 @@ try {
 
     await evaluate(`document.querySelector('input[name="mode"][value="single"]').click()`);
     await evaluate(`document.querySelector('input[name="algorithm"][value="dijkstra"]').click()`);
+    routeRequestCount = await getRouteRequestCount(evaluate);
     await evaluate(`document.querySelector('form.controls button[type="submit"]').click()`);
-    const singleRouteResult = await waitForResult(evaluate);
+    const singleRouteResult = await waitForResult(evaluate, { algorithm: "dijkstra", origin: "A", destination: "D" }, routeRequestCount);
     assert.equal(singleRouteResult.apiAlgorithm, "dijkstra", `${viewport.width}px: single-route mode must call Python`);
     assert.deepEqual(singleRouteResult.renderedPath, ["A", "E", "F", "D"], `${viewport.width}px: individual route must match FastAPI`);
 
@@ -221,8 +229,9 @@ try {
       setValue.call(destination, 'R');
       destination.dispatchEvent(new Event('change', { bubbles: true }));
     })()`);
+    routeRequestCount = await getRouteRequestCount(evaluate);
     await evaluate(`document.querySelector('form.controls button[type="submit"]').click()`);
-    const selectedPairResult = await waitForResult(evaluate);
+    const selectedPairResult = await waitForResult(evaluate, { algorithm: "dijkstra", origin: "K", destination: "R" }, routeRequestCount);
     assert.equal(selectedPairResult.apiOrigin, "K", `${viewport.width}px: selected origin must be sent to FastAPI`);
     assert.equal(selectedPairResult.apiDestination, "R", `${viewport.width}px: selected destination must be sent to FastAPI`);
     assert.equal(selectedPairResult.selectedEndpoints, true, `${viewport.width}px: selected endpoints must be marked on the map`);
@@ -237,8 +246,9 @@ try {
       destination.dispatchEvent(new Event('change', { bubbles: true }));
       document.querySelector('input[name="algorithm"][value="dijkstra"]').click();
     })()`);
+    routeRequestCount = await getRouteRequestCount(evaluate);
     await evaluate(`document.querySelector('form.controls button[type="submit"]').click()`);
-    const restoredResult = await waitForResult(evaluate);
+    const restoredResult = await waitForResult(evaluate, { algorithm: "dijkstra", origin: "A", destination: "D" }, routeRequestCount);
     assert.deepEqual(restoredResult.apiPath, ["A", "E", "F", "D"], `${viewport.width}px: Dijkstra must return the expected Python path`);
 
     if (screenshotDirectory) {
@@ -283,11 +293,7 @@ try {
   }
 } finally {
   socket?.close();
-  if (browser.exitCode === null) {
-    const exited = new Promise(resolve => browser.once("exit", resolve));
-    browser.kill("SIGTERM");
-    await exited;
-  }
+  await stopBrowser(browser);
   await rm(profile, { recursive: true, force: true });
 }
 
@@ -343,11 +349,19 @@ async function waitForPage(evaluate) {
   throw new Error(`Dashboard did not load from ${pageUrl}.`);
 }
 
-async function waitForResult(evaluate) {
+async function getRouteRequestCount(evaluate) {
+  return evaluate(`performance.getEntriesByType('resource').filter(entry => entry.name.includes('/api/routes/compute') || entry.name.includes('/api/routes/compare')).length`);
+}
+
+async function waitForResult(evaluate, expected, previousRequestCount) {
+  let lastState;
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const rendered = await evaluate(`(() => {
       const title = document.querySelector('.result-title')?.textContent ?? '';
-      if (!title) return null;
+      const loading = document.querySelector('.request-status')?.textContent ?? '';
+      const error = document.querySelector('.api-error:not(.geometry-error)')?.textContent ?? '';
+      const routeRequestCount = performance.getEntriesByType('resource')
+        .filter(entry => entry.name.includes('/api/routes/compute') || entry.name.includes('/api/routes/compare')).length;
       const pathEdges = document.querySelectorAll('.road-highlight').length;
       const mode = document.querySelector('[name="mode"]:checked')?.value ?? 'single';
       const algorithm = document.querySelector('[name="algorithm"]:checked')?.value ?? 'dijkstra';
@@ -358,6 +372,9 @@ async function waitForResult(evaluate) {
       const destinationNode = [...document.querySelectorAll('.svg-node')].find(node => node.dataset.nodeId === destination);
       return {
         title,
+        loading,
+        error,
+        routeRequestCount,
         mode,
         algorithm,
         origin,
@@ -370,7 +387,17 @@ async function waitForResult(evaluate) {
           && destinationNode?.classList.contains('is-destination'),
       };
     })()`);
-    if (rendered) {
+    lastState = rendered;
+    if (rendered?.error) throw new Error(`Route request failed: ${rendered.error}`);
+    if (rendered
+      && rendered.title
+      && !rendered.loading
+      && rendered.algorithm === expected.algorithm
+      && rendered.origin === expected.origin
+      && rendered.destination === expected.destination
+      && rendered.routeRequestCount > previousRequestCount
+      && rendered.renderedPath[0] === expected.origin
+      && rendered.renderedPath.at(-1) === expected.destination) {
       const compare = rendered.mode === 'compare';
       const request = { origin: rendered.origin, destination: rendered.destination };
       if (!compare) request.algorithm = rendered.algorithm;
@@ -396,5 +423,32 @@ async function waitForResult(evaluate) {
     }
     await new Promise(resolve => setTimeout(resolve, 100));
   }
-  throw new Error("The route calculation did not produce a visible result.");
+  throw new Error(`Route result did not settle for ${JSON.stringify(expected)}; last DOM state: ${JSON.stringify(lastState)}`);
+}
+
+async function stopBrowser(browser) {
+  const exited = browser.exitCode === null
+    ? new Promise(resolve => browser.once("exit", resolve))
+    : null;
+  if (process.platform === "win32") {
+    if (browser.exitCode === null) browser.kill("SIGTERM");
+  }
+  else {
+    try { process.kill(-browser.pid, "SIGTERM"); } catch (error) {
+      if (error.code !== "ESRCH") throw error;
+    }
+  }
+  if (exited) await exited;
+  if (process.platform !== "win32") {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      try {
+        process.kill(-browser.pid, 0);
+        await new Promise(resolve => setTimeout(resolve, 50));
+      } catch (error) {
+        if (error.code === "ESRCH") return;
+        throw error;
+      }
+    }
+    throw new Error(`Chromium process group ${browser.pid} did not exit before profile cleanup.`);
+  }
 }
