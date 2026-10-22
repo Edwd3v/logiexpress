@@ -12,63 +12,97 @@ export interface RoadGeometry {
   label: MapPoint;
 }
 
+const nodePositions: Record<string, MapPoint> = {
+  A: { x: 195, y: 265 }, B: { x: 440, y: 164 }, C: { x: 805, y: 184 }, D: { x: 855, y: 476 },
+  E: { x: 345, y: 422 }, F: { x: 590, y: 510 }, G: { x: 240, y: 110 }, H: { x: 600, y: 105 },
+  I: { x: 935, y: 215 }, J: { x: 1005, y: 350 }, K: { x: 970, y: 565 }, L: { x: 740, y: 580 },
+  M: { x: 460, y: 570 }, N: { x: 180, y: 520 }, O: { x: 80, y: 380 }, P: { x: 390, y: 300 },
+  Q: { x: 620, y: 350 }, R: { x: 780, y: 335 },
+};
+
+function createOrthogonalRoad(source: string, target: string): RoadGeometry {
+  const start = nodePositions[source];
+  const end = nodePositions[target];
+  if (!start || !end) throw new Error(`Missing map position for road ${source}–${target}.`);
+
+  let points: MapPoint[];
+  const edgeKey = canonicalEdgeKey(source, target);
+  if (edgeKey === canonicalEdgeKey("Q", "H")) {
+    points = [start, { x: 585, y: start.y }, { x: 585, y: end.y }, end];
+  } else if (edgeKey === canonicalEdgeKey("H", "R")) {
+    points = [start, { x: 615, y: start.y }, { x: 615, y: end.y }, end];
+  } else if (Math.abs(end.x - start.x) > Math.abs(end.y - start.y)) {
+    const middleX = (start.x + end.x) / 2;
+    points = [start, { x: middleX, y: start.y }, { x: middleX, y: end.y }, end];
+  } else {
+    const middleY = (start.y + end.y) / 2;
+    points = [start, { x: start.x, y: middleY }, { x: end.x, y: middleY }, end];
+  }
+
+  return { source, target, path: roundedPolyline(points, 7), label: polylineMidpoint(points) };
+}
+
+function roundedPolyline(points: MapPoint[], radius: number): string {
+  let path = `M${points[0].x} ${points[0].y}`;
+  for (let index = 1; index < points.length - 1; index += 1) {
+    const before = points[index - 1];
+    const corner = points[index];
+    const after = points[index + 1];
+    const incomingLength = Math.hypot(corner.x - before.x, corner.y - before.y);
+    const outgoingLength = Math.hypot(after.x - corner.x, after.y - corner.y);
+    const inset = Math.min(radius, incomingLength / 2, outgoingLength / 2);
+    const entry = {
+      x: corner.x - ((corner.x - before.x) / incomingLength) * inset,
+      y: corner.y - ((corner.y - before.y) / incomingLength) * inset,
+    };
+    const exit = {
+      x: corner.x + ((after.x - corner.x) / outgoingLength) * inset,
+      y: corner.y + ((after.y - corner.y) / outgoingLength) * inset,
+    };
+    path += ` L${entry.x} ${entry.y} Q${corner.x} ${corner.y} ${exit.x} ${exit.y}`;
+  }
+  const end = points.at(-1);
+  if (end) path += ` L${end.x} ${end.y}`;
+  return path;
+}
+
+function polylineMidpoint(points: MapPoint[]): MapPoint {
+  const segments = points.slice(1).map((point, index) => ({
+    start: points[index], end: point, length: Math.hypot(point.x - points[index].x, point.y - points[index].y),
+  }));
+  let remaining = segments.reduce((total, segment) => total + segment.length, 0) / 2;
+  for (const segment of segments) {
+    if (remaining <= segment.length) {
+      const ratio = remaining / segment.length;
+      return {
+        x: segment.start.x + (segment.end.x - segment.start.x) * ratio,
+        y: segment.start.y + (segment.end.y - segment.start.y) * ratio,
+      };
+    }
+    remaining -= segment.length;
+  }
+  return points[0];
+}
+
 export const simulatedMapGeometry = {
   viewBox: { width: 1080, height: 640 },
-  nodes: {
-    A: { x: 195, y: 265 },
-    B: { x: 440, y: 164 },
-    C: { x: 805, y: 184 },
-    D: { x: 855, y: 476 },
-    E: { x: 345, y: 422 },
-    F: { x: 590, y: 510 },
-    G: { x: 240, y: 110 },
-    H: { x: 600, y: 105 },
-    I: { x: 935, y: 215 },
-    J: { x: 1005, y: 350 },
-    K: { x: 970, y: 565 },
-    L: { x: 740, y: 580 },
-    M: { x: 460, y: 570 },
-    N: { x: 180, y: 520 },
-    O: { x: 80, y: 380 },
-    P: { x: 390, y: 300 },
-    Q: { x: 620, y: 350 },
-    R: { x: 780, y: 335 },
-  } satisfies Record<string, MapPoint>,
+  crossings: [
+    { first: "A-D", second: "B-P", x: 390, y: 265 },
+    { first: "A-D", second: "F-Q", x: 590, y: 476 },
+    { first: "A-D", second: "P-Q", x: 525, y: 350 },
+    { first: "A-E", second: "N-P", x: 345, y: 410 },
+    { first: "B-C", second: "H-Q", x: 585, y: 164 },
+    { first: "B-C", second: "H-R", x: 615, y: 164 },
+    { first: "C-D", second: "I-R", x: 855, y: 335 },
+  ],
+  nodes: nodePositions,
   roads: [
-    { source: "A", target: "D", path: "M195 265 C153 240 122 230 122 175 L122 125 Q122 83 175 83 L742 83 Q959 83 959 230 L959 398 Q962 452 855 476", label: { x: 638, y: 65 } },
-    { source: "A", target: "B", path: "M195 265 C242 265 250 207 309 206 L380 164 Q405 155 440 164", label: { x: 307, y: 186 } },
-    { source: "B", target: "C", path: "M440 164 C510 174 535 145 603 160 L710 172 Q765 172 805 184", label: { x: 615, y: 142 } },
-    { source: "C", target: "D", path: "M805 184 C836 226 823 262 858 308 L878 385 C894 430 865 452 855 476", label: { x: 893, y: 322 } },
-    { source: "A", target: "E", path: "M195 265 C196 320 256 335 267 373 S305 422 345 422", label: { x: 224, y: 355 } },
-    { source: "E", target: "F", path: "M345 422 C420 424 413 489 490 490 S550 512 590 510", label: { x: 460, y: 462 } },
-    { source: "F", target: "D", path: "M590 510 C685 521 688 469 753 472 L855 476", label: { x: 726, y: 498 } },
-    { source: "A", target: "G", path: "M195 265 C184 210 203 157 240 110", label: { x: 187, y: 184 } },
-    { source: "G", target: "B", path: "M240 110 C307 114 360 142 440 164", label: { x: 339, y: 118 } },
-    { source: "B", target: "H", path: "M440 164 C478 132 536 108 600 105", label: { x: 524, y: 117 } },
-    { source: "H", target: "C", path: "M600 105 C671 102 742 131 805 184", label: { x: 702, y: 106 } },
-    { source: "C", target: "I", path: "M805 184 C850 183 896 201 935 215", label: { x: 874, y: 177 } },
-    { source: "I", target: "J", path: "M935 215 C978 252 1012 292 1005 350", label: { x: 986, y: 281 } },
-    { source: "J", target: "D", path: "M1005 350 C980 417 939 443 855 476", label: { x: 966, y: 411 } },
-    { source: "D", target: "K", path: "M855 476 C911 497 933 534 970 565", label: { x: 924, y: 522 } },
-    { source: "K", target: "L", path: "M970 565 C908 593 817 594 740 580", label: { x: 850, y: 605 } },
-    { source: "L", target: "F", path: "M740 580 C678 587 633 549 590 510", label: { x: 678, y: 557 } },
-    { source: "F", target: "M", path: "M590 510 C558 542 506 562 460 570", label: { x: 529, y: 552 } },
-    { source: "M", target: "E", path: "M460 570 C406 545 371 489 345 422", label: { x: 386, y: 504 } },
-    { source: "E", target: "N", path: "M345 422 C292 461 245 500 180 520", label: { x: 274, y: 463 } },
-    { source: "N", target: "O", path: "M180 520 C129 481 96 432 80 380", label: { x: 107, y: 466 } },
-    { source: "O", target: "A", path: "M80 380 C120 322 160 271 195 265", label: { x: 122, y: 302 } },
-    { source: "B", target: "P", path: "M440 164 C440 210 403 263 390 300", label: { x: 444, y: 249 } },
-    { source: "P", target: "E", path: "M390 300 C378 355 365 389 345 422", label: { x: 373, y: 375 } },
-    { source: "P", target: "Q", path: "M390 300 C476 299 535 327 620 350", label: { x: 507, y: 288 } },
-    { source: "Q", target: "F", path: "M620 350 C646 399 624 469 590 510", label: { x: 646, y: 435 } },
-    { source: "Q", target: "R", path: "M620 350 C677 325 720 330 780 335", label: { x: 705, y: 312 } },
-    { source: "R", target: "C", path: "M780 335 C811 290 817 238 805 184", label: { x: 833, y: 261 } },
-    { source: "R", target: "D", path: "M780 335 C831 383 854 427 855 476", label: { x: 808, y: 406 } },
-    { source: "H", target: "R", path: "M600 105 C645 169 726 266 780 335", label: { x: 679, y: 204 } },
-    { source: "Q", target: "H", path: "M620 350 C614 273 600 178 600 105", label: { x: 578, y: 240 } },
-    { source: "N", target: "P", path: "M180 520 C241 455 321 354 390 300", label: { x: 286, y: 385 } },
-    { source: "R", target: "I", path: "M780 335 C833 294 880 249 935 215", label: { x: 873, y: 288 } },
-  ] satisfies RoadGeometry[],
+    ["A", "D"], ["A", "B"], ["B", "C"], ["C", "D"], ["A", "E"], ["E", "F"], ["F", "D"],
+    ["A", "G"], ["G", "B"], ["B", "H"], ["H", "C"], ["C", "I"], ["I", "J"], ["J", "D"],
+    ["D", "K"], ["K", "L"], ["L", "F"], ["F", "M"], ["M", "E"], ["E", "N"], ["N", "O"],
+    ["O", "A"], ["B", "P"], ["P", "E"], ["P", "Q"], ["Q", "F"], ["Q", "R"], ["R", "C"],
+    ["R", "D"], ["H", "R"], ["Q", "H"], ["N", "P"], ["R", "I"],
+  ].map(([source, target]) => createOrthogonalRoad(source, target)) satisfies RoadGeometry[],
 } as const;
 
 export function canonicalEdgeKey(source: string, target: string): string {

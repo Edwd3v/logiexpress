@@ -93,7 +93,7 @@ describe("API-backed dashboard", () => {
     fireEvent.click(screen.getByRole("button", { name: /Ver resultado BFS/ }));
     await waitFor(() => expect(document.querySelector(".result-title")?.textContent).toContain("Camino encontrado"));
     expect(screen.getAllByText(/Orden de exploración/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Camino encontrado/)).toBeTruthy();
+    expect(screen.getAllByText(/Camino encontrado/).length).toBeGreaterThan(0);
     expect(document.querySelector(".route")?.textContent).toContain("A · Centro Occidente");
     expect(document.querySelector(".route")?.textContent).toContain("F · Consolidación Sur");
     expect(document.querySelectorAll(".road-highlight")).toHaveLength(2);

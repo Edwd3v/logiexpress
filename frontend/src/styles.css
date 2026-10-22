@@ -105,6 +105,10 @@
     .graph-heading { padding: 20px 21px 15px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
     .graph-heading .panel-subtitle { margin-top: 5px; }
     .graph-tools { display: flex; flex-wrap: wrap; gap: 11px; align-items: center; }
+    .map-mode-switch { display: flex; gap: 3px; padding: 3px; background: #edf3f5; border-radius: 9px; }
+    .map-mode-button { border: 0; background: transparent; color: #64778d; border-radius: 7px; padding: 6px 8px; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; }
+    .map-mode-button[aria-checked="true"] { background: #fff; color: var(--primary); box-shadow: 0 1px 4px #16354a18; }
+    .map-mode-button:focus-visible, .map-zoom-tools button:focus-visible, .map-inspector-close:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
     .live-pill { display: flex; align-items: center; gap: 7px; background: #eaf7f4; color: #278c77; font-size: 10.5px; padding: 7px 10px; border-radius: 100px; font-weight: 770; }
     .live-pill::before { content: ""; width: 6px; height: 6px; background: #24a78b; border-radius: 50%; }
     .toggle-label { font-size: 11px; font-weight: 640; color: #6f8096; cursor: pointer; display: flex; align-items: center; gap: 7px; }
@@ -114,14 +118,33 @@
     .canvas-tag { display: flex; align-items: center; gap: 7px; color: #677b94; font-size: 10px; font-weight: 700; background: #fffdfd; border: 1px solid #e8edf4; border-radius: 7px; padding: 7px 9px; }
     .canvas-tag .tag-icon { color: var(--primary); }
     .zoom-note { color: #91a0b2; font-size: 10px; }
-    .graph-stage { width: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-color: #a9c2c5 #e7eef1; scrollbar-width: thin; }
+    .graph-stage { width: 100%; max-height: 620px; overflow: auto; overscroll-behavior: contain; scrollbar-color: #a9c2c5 #e7eef1; scrollbar-width: thin; }
     .graph-stage:focus-visible { position: relative; z-index: 2; }
     #network { width: 100%; height: auto; min-height: 340px; display: block; }
+    .map-zoom-tools { display: flex; align-items: center; gap: 4px; pointer-events: auto; }
+    .map-zoom-tools button { width: 27px; height: 27px; display: grid; place-items: center; border: 1px solid #e2e9ef; border-radius: 7px; background: #fff; color: #46606d; font-size: 15px; cursor: pointer; }
     .road-base { fill: none; stroke: #9eafb4; stroke-width: 26; stroke-linecap: round; stroke-linejoin: round; }
     .road-asphalt { fill: none; stroke: #667a82; stroke-width: 19; stroke-linecap: round; stroke-linejoin: round; }
     .road-surface { fill: none; stroke: #aebdc0; stroke-width: 13; stroke-linecap: round; stroke-linejoin: round; }
     .road-mark { fill: none; stroke: #f8f2d8; stroke-width: 1.6; stroke-dasharray: 10 13; stroke-linecap: round; }
-    .road-highlight { fill: none; stroke: var(--route-ink); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px #fff); }
+    .road-highlight { fill: none; stroke: var(--route-ink); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px #fff); pointer-events: none; }
+    .road-group { cursor: pointer; }
+    .road-group.is-dim { opacity: .22; }
+    .road-group:focus-visible { outline: none; }
+    .road-group:focus-visible .road-surface { stroke: #087f79; stroke-width: 18; }
+    .bridge-crossing { pointer-events: none; }
+    .bridge-crossing circle { fill: #f8fafc; stroke: #f8fafc; stroke-width: 2; }
+    .bridge-crossing path:first-of-type { fill: none; stroke: #70858a; stroke-width: 2.5; }
+    .bridge-crossing path:last-of-type { fill: none; stroke: #70858a; stroke-width: 2.5; }
+    .edge-weight.is-muted { opacity: .45; }
+    .svg-node { cursor: pointer; }
+    .svg-node:focus-visible { outline: none; }
+    .svg-node:focus-visible .circle { stroke: var(--focus); stroke-width: 4; }
+    .map-inspector { position: relative; margin: 10px 15px 0; padding: 12px 38px 12px 14px; border: 1px solid #dbe7e8; border-radius: 10px; background: #fff; color: #425a68; font-size: 11px; }
+    .map-inspector strong, .map-inspector span { display: block; }
+    .map-inspector span { margin-top: 5px; color: #71839c; }
+    .map-inspector ul { display: flex; flex-wrap: wrap; gap: 7px 16px; padding-left: 17px; margin: 5px 0 0; }
+    .map-inspector-close { position: absolute; top: 7px; right: 8px; border: 0; background: transparent; color: #657a85; font-size: 18px; cursor: pointer; }
     .svg-node text { user-select: none; }
     .svg-node .circle { fill: #fff; stroke: #758b90; stroke-width: 2.5; }
     .svg-node .letter { fill: #233540; font-size: 16px; font-weight: 850; text-anchor: middle; dominant-baseline: central; }
@@ -140,6 +163,7 @@
     .legend { display: flex; flex-wrap: wrap; gap: 17px; margin-bottom: 14px; font-size: 10px; color: #71839c; align-items: center; }
     .legend-item { display: flex; align-items: center; gap: 6px; }
     .legend-line { width: 16px; border-radius: 3px; height: 3px; background: #d2deea; }
+    .crossing-legend { width: 17px; height: 13px; display: inline-grid; place-items: center; color: #70858a; font-size: 20px; font-weight: 800; line-height: 1; }
     .legend-dot { width: 9px; height: 9px; border: 2px solid #a2b5cb; border-radius: 50%; background: #fff; }
     .endpoint-marker { width: 19px; height: 19px; border: 2px solid currentColor; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10px; font-weight: 800; line-height: 1; }
     .origin-marker { color: #94520b; background: #fff4df; }

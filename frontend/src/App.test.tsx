@@ -83,22 +83,21 @@ describe("LogiExpress dashboard", () => {
     expect(document.querySelectorAll(".edge-weight")).toHaveLength(2);
   });
 
-  it("keeps exploration markers opt-in and toggles only that visual layer", async () => {
+  it("uses the exploration layer without presenting it as a continuous route", async () => {
     await renderReady();
     fireEvent.click(screen.getByRole("button", { name: "Ejecutar análisis" }));
     await waitFor(() => expect(document.querySelector(".result-title")?.textContent).toContain("Camino encontrado"));
 
     const roads = document.querySelectorAll(".road-surface").length;
-    const path = [...document.querySelectorAll(".road-highlight")].map((road) => road.getAttribute("data-edge-key"));
     expect(document.querySelectorAll(".visit-order-badge")).toHaveLength(0);
 
-    const exploration = screen.getByLabelText("Mostrar exploración");
-    fireEvent.click(exploration);
+    fireEvent.click(screen.getByRole("radio", { name: "Exploración" }));
     expect(document.querySelectorAll(".visit-order-badge")).toHaveLength(route.visited_order.length);
+    expect(document.querySelectorAll(".road-highlight")).toHaveLength(0);
     fireEvent.click(screen.getByLabelText("Mostrar pesos"));
     expect(document.querySelectorAll(".edge-weight")).toHaveLength(0);
     expect(document.querySelectorAll(".road-surface")).toHaveLength(roads);
-    expect([...document.querySelectorAll(".road-highlight")].map((road) => road.getAttribute("data-edge-key"))).toEqual(path);
+    expect(screen.getByText(/no es un camino continuo/i)).toBeTruthy();
   });
 
   it("distinguishes an unrun comparison from an inaccessible destination", async () => {

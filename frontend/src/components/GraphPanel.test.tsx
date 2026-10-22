@@ -1,7 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { GraphPanel } from "./GraphPanel";
+import { algorithmDetails } from "../data/algorithmDetails";
 import { simulatedMapGeometry, validateMapGeometry } from "../data/simulatedMapGeometry";
 import type { GraphResponse, RouteResult } from "../types/api";
 
@@ -53,12 +54,24 @@ function renderGraph(inputGraph = graph, inputResult: RouteResult | null = resul
 }
 
 describe("GraphPanel simulated road geometry", () => {
-  it("renders only backend edges as curved roads and uses backend weights", () => {
-    renderGraph();
+  it("renders the approved orthogonal geometry and exposes the three map layers", () => {
+    renderGraph(graph, null);
 
     const roads = [...document.querySelectorAll<SVGPathElement>(".road-surface")];
     expect(roads).toHaveLength(33);
-    expect(roads.every((road) => road.getAttribute("d")?.includes("C"))).toBe(true);
+    expect(roads.every((road) => !/[CS]/.test(road.getAttribute("d") ?? ""))).toBe(true);
+    expect(screen.getByRole("radio", { name: "Grafo completo" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Camino encontrado" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Exploración" })).toBeTruthy();
+  });
+
+  it("renders only backend edges as orthogonal roads and uses backend weights", () => {
+    renderGraph();
+    fireEvent.click(screen.getByRole("radio", { name: "Grafo completo" }));
+
+    const roads = [...document.querySelectorAll<SVGPathElement>(".road-surface")];
+    expect(roads).toHaveLength(33);
+    expect(roads.every((road) => !/[CS]/.test(road.getAttribute("d") ?? ""))).toBe(true);
     expect(document.querySelectorAll(".svg-node")).toHaveLength(18);
     expect([...document.querySelectorAll(".edge-weight text")].map((label) => label.textContent)).toEqual([
       "20", "4", "4", "4", "1", "1", "1", "3", "4", "3", "3", "2",
@@ -87,15 +100,48 @@ describe("GraphPanel simulated road geometry", () => {
     expect(document.querySelector(".route")?.textContent).toContain("D · Terminal Oriente");
   });
 
+  it("uses each selected algorithm's route color", () => {
+    for (const algorithm of ["bfs", "dfs", "dijkstra"] as const) {
+      const algorithmResult = { ...result, algorithm };
+      const { unmount } = renderGraph(graph, algorithmResult);
+      expect(document.querySelector(".road-highlight")?.getAttribute("style")).toContain(algorithmDetails[algorithm].color);
+      unmount();
+    }
+  });
+
   it("hides exploration markers by default", () => {
     renderGraph();
-    expect((screen.getByLabelText("Mostrar exploración") as HTMLInputElement).checked).toBe(false);
+    expect(screen.getByRole("radio", { name: "Exploración" }).getAttribute("aria-checked")).toBe("false");
     expect(document.querySelectorAll(".visit-order-badge")).toHaveLength(0);
   });
 
   it("renders only the API visited order when exploration is enabled", () => {
     renderGraph(graph, result, true);
     expect(document.querySelectorAll(".visit-order-badge")).toHaveLength(result.visited_order.length);
+  });
+
+  it("switches between complete, path-only, and exploration layers without inventing edges", () => {
+    renderGraph();
+    fireEvent.click(screen.getByRole("radio", { name: "Camino encontrado" }));
+    expect(document.querySelectorAll(".road-highlight")).toHaveLength(3);
+    expect(document.querySelectorAll(".edge-weight.active")).toHaveLength(3);
+    expect(document.querySelectorAll(".edge-weight")).toHaveLength(3);
+
+    fireEvent.click(screen.getByRole("radio", { name: "Exploración" }));
+    expect(document.querySelectorAll(".road-highlight")).toHaveLength(0);
+    expect(document.querySelectorAll(".visit-order-badge")).toHaveLength(result.visited_order.length);
+    expect(screen.getByText(/no es un camino continuo/i)).toBeTruthy();
+  });
+
+  it("supports map zoom and contextual node and edge information", () => {
+    renderGraph();
+    fireEvent.click(screen.getByRole("button", { name: "Acercar mapa" }));
+    expect(document.querySelector("#network")?.getAttribute("style")).toContain("width: 125%");
+
+    fireEvent.click(screen.getByRole("button", { name: /Centro Occidente · nodo A/i }));
+    expect(screen.getByLabelText("Información contextual").textContent).toContain("Terminal Oriente · 20");
+    fireEvent.click(screen.getByRole("button", { name: /Conexión A · Centro Occidente a D · Terminal Oriente/i }));
+    expect(screen.getByLabelText("Información contextual").textContent).toContain("Peso 20");
   });
 
   it("exposes a keyboard-scrollable map and a non-color-only endpoint legend", () => {
