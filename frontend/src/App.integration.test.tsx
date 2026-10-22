@@ -94,7 +94,8 @@ describe("API-backed dashboard", () => {
     await screen.findByText("Camino encontrado · BFS");
     expect(screen.getAllByText(/Orden de visita/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Camino encontrado/)).toBeTruthy();
-    expect(screen.getAllByText(/A → E → F/).length).toBeGreaterThan(1);
+    expect(document.querySelector(".path-sequence")?.textContent).toContain("A · Centro Occidente");
+    expect(document.querySelector(".path-sequence")?.textContent).toContain("F · Consolidación Sur");
     expect(document.querySelectorAll(".road-highlight")).toHaveLength(2);
   });
 
@@ -196,6 +197,7 @@ describe("API-backed dashboard", () => {
     await waitFor(() => expect(document.querySelectorAll(".road-highlight")).toHaveLength(1));
     finishFirst(Response.json(firstComparison));
     await waitFor(() => expect(document.querySelectorAll(".road-highlight")).toHaveLength(1));
-    expect(screen.getAllByText(/A → E/).length).toBeGreaterThan(0);
+    expect(document.querySelector(".path-sequence")?.textContent).toContain("A · Centro Occidente");
+    expect(document.querySelector(".path-sequence")?.textContent).toContain("Microhub Central");
   });
 });

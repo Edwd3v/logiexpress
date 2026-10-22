@@ -27,6 +27,8 @@ export function Sidebar({ activeSection, onNavigate }: SidebarProps) {
             className={`nav-link${activeSection === id ? " active" : ""}`}
             href={`#${id}`}
             key={id}
+            aria-label={label}
+            title={label}
             aria-current={activeSection === id ? "location" : undefined}
             onClick={() => onNavigate(id)}
           >

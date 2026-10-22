@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import { algorithmDetails } from "../data/algorithmDetails";
+import { locationLabel } from "../data/locationNames";
 import { canonicalEdgeKey, getNodePosition, getRoadGeometry, simulatedMapGeometry, validateMapGeometry } from "../data/simulatedMapGeometry";
 import type { GraphResponse, RouteResult } from "../types/api";
 import { Icon } from "./Icon";
@@ -63,13 +64,27 @@ export function GraphPanel({
         </div>
       </div>
 
+      {graph && (
+        <p className="map-scroll-hint">Desplaza horizontalmente para explorar el mapa; también puedes usar las flechas del teclado.</p>
+      )}
       <div className="graph-canvas">
         <div className="canvas-top">
           <div className="canvas-tag"><Icon name="graph" size={13} />Grafo no dirigido</div>
           <div className="zoom-note">Trazados viales simulados · geometría SVG</div>
         </div>
         {graph ? (
-          <div className="graph-stage">
+          <div
+            className="graph-stage"
+            role="region"
+            aria-label="Mapa desplazable de la red logística"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                event.preventDefault();
+                event.currentTarget.scrollBy({ left: event.key === "ArrowRight" ? 80 : -80 });
+              }
+            }}
+          >
             <GraphSvg
               graph={graph}
               origin={origin}
@@ -78,6 +93,7 @@ export function GraphPanel({
               pathEdges={pathEdges}
               visitIndex={visitIndex}
               routeColor={routeColor}
+              routeTextColor={algorithmDetails[algorithm].textColor}
               showWeights={showWeights}
             />
           </div>
@@ -100,6 +116,8 @@ export function GraphPanel({
             <span className="legend-item"><span className="legend-line" style={{ background: routeColor }} />Camino (`path`)</span>
             <span className="legend-item"><span className="visit-legend" />Orden de visita</span>
             <span className="legend-item"><span className="legend-line" />Conexión</span>
+            <span className="legend-item"><span className="endpoint-marker origin-marker" aria-hidden="true">O</span>Origen · {locationLabel(origin)}</span>
+            <span className="legend-item"><span className="endpoint-marker destination-marker" aria-hidden="true">D</span>Destino · {locationLabel(destination)}</span>
           </div>
           {isLoading && <div className="request-status" role="status">Consultando FastAPI…</div>}
           {errorMessage && <div className="api-error" role="alert">{errorMessage}</div>}
@@ -114,17 +132,17 @@ export function GraphPanel({
                   {result.path ? result.path.map((node, index) => (
                     <span className="route-segment" key={`${index}-${node}`}>
                       {index > 0 && <span className="route-arrow" aria-hidden="true">→</span>}
-                      <span className="route-node" style={{ background: algorithmDetails[result.algorithm].pale, color: routeColor }}>{node}</span>
+                      <span className="route-node" data-node-id={node} style={{ background: algorithmDetails[result.algorithm].pale, color: algorithmDetails[result.algorithm].textColor }}>{locationLabel(node)}</span>
                     </span>
-                  )) : <span className="route-unavailable">Sin camino entre {result.origin} y {result.destination}.</span>}
+                  )) : <span className="route-unavailable">Sin camino entre {locationLabel(result.origin)} y {locationLabel(result.destination)}.</span>}
                 </div>
                 <div className="visit-sequence">
                   <strong>Orden de visita (`visited_order`):</strong>
-                  <span>{result.visited_order.length ? result.visited_order.join(" → ") : "Sin nodos visitados"}</span>
+                  <span>{result.visited_order.length ? result.visited_order.map(locationLabel).join(" → ") : "Sin nodos visitados"}</span>
                 </div>
                 <div className="path-sequence">
                   <strong>Camino (`path`):</strong>
-                  <span>{result.path?.join(" → ") ?? "No disponible"}</span>
+                  <span>{result.path?.map(locationLabel).join(" → ") ?? "No disponible"}</span>
                 </div>
               </div>
               <div className="result-number"><div className="number">{result.total_weight ?? "—"}</div><small>Costo total</small></div>
@@ -152,10 +170,11 @@ interface GraphSvgProps {
   pathEdges: Set<string>;
   visitIndex: Map<string, number>;
   routeColor: string;
+  routeTextColor: string;
   showWeights: boolean;
 }
 
-function GraphSvg({ graph, origin, destination, pathNodes, pathEdges, visitIndex, routeColor, showWeights }: GraphSvgProps) {
+function GraphSvg({ graph, origin, destination, pathNodes, pathEdges, visitIndex, routeColor, routeTextColor, showWeights }: GraphSvgProps) {
   const { width, height } = simulatedMapGeometry.viewBox;
   const description = `${graph.nodes.length} nodos y ${graph.edges.length} aristas recibidos desde FastAPI.`;
   const renderedEdges = graph.edges.filter((edge, index) =>
@@ -239,7 +258,7 @@ function GraphSvg({ graph, origin, destination, pathNodes, pathEdges, visitIndex
               className={`svg-node${order ? " is-visited" : ""}${isOnPath ? " is-path" : ""}${isOrigin ? " is-origin" : ""}${isDestination ? " is-destination" : ""}`}
               data-node-id={id}
               key={id}
-              style={isOnPath ? { "--route-ink": routeColor } as CSSProperties : undefined}
+              style={isOnPath ? { "--route-ink": routeColor, "--route-text": routeTextColor } as CSSProperties : undefined}
             >
               {isOnPath && <circle cx={position.x} cy={position.y} r="29" stroke={routeColor} className="halo" />}
               <circle

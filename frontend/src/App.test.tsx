@@ -86,4 +86,19 @@ describe("LogiExpress dashboard", () => {
     fireEvent.click(navigation);
     expect(navigation.getAttribute("aria-current")).toBe("location");
   });
+
+  it("keeps descriptive navigation names and location names in controls and results", async () => {
+    await renderReady();
+
+    expect(screen.getByRole("link", { name: "Planificador" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Comparar rutas" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Guía de algoritmos" })).toBeTruthy();
+    expect(screen.getAllByRole("option", { name: "A · Centro Occidente" })).toHaveLength(2);
+    expect(screen.getAllByRole("option", { name: "F · Consolidación Sur" })).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole("button", { name: "Ejecutar análisis" }));
+    await screen.findByText("Camino encontrado · Dijkstra");
+    expect(document.querySelector(".route")?.textContent).toContain("A · Centro Occidente");
+    expect(document.querySelector(".route")?.textContent).toContain("F · Consolidación Sur");
+  });
 });

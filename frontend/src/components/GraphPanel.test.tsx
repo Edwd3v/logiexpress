@@ -77,8 +77,19 @@ describe("GraphPanel simulated road geometry", () => {
     expect(document.querySelector('[data-node-id="A"]')?.classList.contains("is-path")).toBe(true);
     expect(document.querySelector('[data-node-id="D"]')?.classList.contains("is-destination")).toBe(true);
     expect(document.querySelector('[data-node-id="D"]')?.classList.contains("is-path")).toBe(true);
-    expect(screen.getByText("A → B → E → F → D")).toBeTruthy();
-    expect(screen.getByText("A → E → F → D")).toBeTruthy();
+    expect(document.querySelector(".visit-sequence")?.textContent).toContain("A · Centro Occidente");
+    expect(document.querySelector(".path-sequence")?.textContent).toContain("D · Terminal Oriente");
+    expect(document.querySelector(".route")?.textContent).toContain("E · Microhub Central");
+  });
+
+  it("exposes a keyboard-scrollable map and a non-color-only endpoint legend", () => {
+    renderGraph();
+
+    const stage = screen.getByRole("region", { name: /Mapa desplazable/ });
+    expect(stage.getAttribute("tabindex")).toBe("0");
+    expect(screen.getByText(/Desplaza horizontalmente para explorar el mapa/)).toBeTruthy();
+    expect(document.querySelector(".legend")?.textContent).toContain("Origen · A · Centro Occidente");
+    expect(document.querySelector(".legend")?.textContent).toContain("Destino · D · Terminal Oriente");
   });
 
   it("reports missing node or road geometry instead of drawing a straight fallback", () => {

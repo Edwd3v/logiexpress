@@ -7,9 +7,22 @@ Los cambios se agrupan por versión. La versión del paquete se define en
 
 ### Added
 
+- Nombres aprobados para las 18 ubicaciones en los selectores, la leyenda de extremos y el detalle de resultados.
+- Navegación por secciones visible en móvil, enlaces con nombres accesibles estables y desplazamiento horizontal del mapa mediante teclado.
+- Leyenda textual para origen y destino, además de una instrucción visible para explorar el mapa cuando requiere desplazamiento.
+
+### Changed
+
+- Contraste WCAG AA para textos secundarios, estados seleccionados y foco; el mapa conserva una escala mínima legible con desplazamiento interno.
+- Área táctil de intercambio de origen/destino ampliada a 44 × 44 px.
+- La versión local se prepara como `0.7.0` para el Incremento 3B; queda pendiente de commit/tag y no está publicada.
+
+### Fixed
+
+- El harness responsive obtiene la respuesta de referencia desde el runner en vez de emitir un fetch redundante desde el contexto del navegador.
+
 - Base HTTP FastAPI sobre el grafo, los servicios y los resultados existentes, con contratos tipados, validación y pruebas de integración.
 - ADR-015 aprueba React + TypeScript + Vite y FastAPI como evolución; Streamlit se conserva temporalmente y React queda fuera de este incremento.
-- La versión local se prepara como `0.6.0` por la nueva API; aún no está confirmada por commit/tag ni publicada.
 
 ## [0.5.0] - 2026-10-20
 

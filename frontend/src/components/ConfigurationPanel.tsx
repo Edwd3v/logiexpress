@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 
 import { algorithmDetails } from "../data/algorithmDetails";
+import { locationLabel } from "../data/locationNames";
 import type { AlgorithmName } from "../types/api";
 import type { DashboardState } from "../types/dashboard";
 import { Icon } from "./Icon";
@@ -70,7 +71,7 @@ export function ConfigurationPanel({ nodes, disabled, state, onChange, onSubmit 
               onChange={(event) => onChange({ origin: event.target.value })}
             >
               {nodes.map((node) => (
-                <option key={node} value={node}>{nodeLabel(node)}</option>
+                <option key={node} value={node}>{locationLabel(node)}</option>
               ))}
             </select>
           </div>
@@ -98,7 +99,7 @@ export function ConfigurationPanel({ nodes, disabled, state, onChange, onSubmit 
               onChange={(event) => onChange({ destination: event.target.value })}
             >
               {nodes.map((node) => (
-                <option key={node} value={node}>{nodeLabel(node)}</option>
+                <option key={node} value={node}>{locationLabel(node)}</option>
               ))}
             </select>
           </div>
@@ -143,8 +144,4 @@ export function ConfigurationPanel({ nodes, disabled, state, onChange, onSubmit 
       </div>
     </form>
   );
-}
-
-function nodeLabel(node: string): string {
-  return node;
 }

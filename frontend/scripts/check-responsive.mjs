@@ -91,6 +91,30 @@ try {
     });
     await evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
 
+    const navigation = await evaluate(`(() => {
+      const links = [...document.querySelectorAll('.sidebar nav a')];
+      const visible = links.every(link => {
+        const rect = link.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 && getComputedStyle(link).display !== 'none';
+      });
+      return { count: links.length, names: links.map(link => link.getAttribute('aria-label')), visible };
+    })()`);
+    assert.deepEqual(navigation.names, ["Planificador", "Comparar rutas", "Guía de algoritmos"], `${viewport.width}px: navigation links must have stable accessible names`);
+    assert.equal(navigation.count, 3, `${viewport.width}px: navigation must not be duplicated`);
+    assert.equal(navigation.visible, true, `${viewport.width}px: existing section navigation must remain visible`);
+    await evaluate("document.querySelector('.sidebar nav a').focus()");
+    for (const expectedName of ["Comparar rutas", "Guía de algoritmos"]) {
+      await command("Input.dispatchKeyEvent", { type: "keyDown", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 });
+      await command("Input.dispatchKeyEvent", { type: "keyUp", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 });
+      assert.equal(await evaluate("document.activeElement.getAttribute('aria-label')"), expectedName, `${viewport.width}px: keyboard tab order must follow navigation order`);
+    }
+    const navigationFocus = await evaluate(`(() => {
+      const style = getComputedStyle(document.activeElement);
+      return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth, outlineColor: style.outlineColor };
+    })()`);
+    assert.deepEqual(navigationFocus, { outlineStyle: "solid", outlineWidth: "3px", outlineColor: "rgb(155, 194, 255)" }, `${viewport.width}px: keyboard focus must have a visible high-contrast indicator`);
+    await evaluate("document.activeElement.blur()");
+
     const before = await evaluate(`(() => {
       const width = document.documentElement.clientWidth;
       const required = [document.querySelector('#origin'), document.querySelector('#destination'), document.querySelector('form.controls button[type="submit"]')];
@@ -125,11 +149,15 @@ try {
             clientWidth: map.clientWidth,
             contentWidth: map.scrollWidth,
             overflowX: getComputedStyle(map).overflowX,
+            svgWidth: document.querySelector('#network').getBoundingClientRect().width,
+            weightTextPx: Number.parseFloat(getComputedStyle(document.querySelector('.edge-weight text')).fontSize)
+              * document.querySelector('#network').getBoundingClientRect().width / 1080,
           };
         })(),
         document: document.documentElement.scrollWidth,
         body: document.body.scrollWidth,
         controlsVisible: visible,
+        swapTarget: (() => { const rect = document.querySelector('.swap').getBoundingClientRect(); return { width: rect.width, height: rect.height }; })(),
         clipped,
         nodes: document.querySelectorAll('.svg-node').length,
         roads: document.querySelectorAll('.road-surface').length,
@@ -147,6 +175,7 @@ try {
     assert.equal(before.viewport, viewport.width, `${viewport.width}px: use the requested CSS viewport width`);
     assert.equal(before.viewportHeight, viewport.height, `${viewport.width}px: use the requested CSS viewport height`);
     assert.equal(before.controlsVisible, true, `${viewport.width}px: route controls must fit the viewport`);
+    assert.ok(before.swapTarget.width >= 44 && before.swapTarget.height >= 44, `${viewport.width}px: endpoint swap must have a touch target of at least 44x44 CSS pixels`);
     assert.ok(
       before.document <= before.viewport && before.body <= before.viewport,
       `${viewport.width}px: horizontal overflow: ${JSON.stringify(before)}`,
@@ -157,6 +186,7 @@ try {
       assert.ok(before.mapViewport.contentWidth > before.mapViewport.clientWidth, `${viewport.width}px: the map must remain horizontally scrollable.`);
       assert.equal(before.mapViewport.overflowX, "auto", `${viewport.width}px: map overflow must be explicitly scrollable.`);
     }
+    console.log(`${viewport.width}x${viewport.height}: inner=${before.viewport}x${before.viewportHeight}, document=${before.document}px, map=${before.mapViewport.clientWidth}/${before.mapViewport.contentWidth}px, weight-label≈${before.mapViewport.weightTextPx.toFixed(1)}px, swap=${before.swapTarget.width}x${before.swapTarget.height}px.`);
 
     await evaluate(`document.querySelector('form.controls button[type="submit"]').click()`);
     const result = await waitForResult(evaluate);
@@ -240,6 +270,15 @@ try {
         await evaluate("window.scrollTo(0, 0)");
       }
     }
+    if (before.mapViewport.contentWidth > before.mapViewport.clientWidth) {
+      await evaluate("(() => { const map = document.querySelector('.graph-stage'); map.scrollLeft = 0; map.focus(); })()");
+      await command("Input.dispatchKeyEvent", { type: "keyDown", key: "ArrowRight", code: "ArrowRight", windowsVirtualKeyCode: 39 });
+      await command("Input.dispatchKeyEvent", { type: "keyUp", key: "ArrowRight", code: "ArrowRight", windowsVirtualKeyCode: 39 });
+      const keyboardScroll = await evaluate("document.querySelector('.graph-stage').scrollLeft");
+      assert.ok(keyboardScroll > 0, `${viewport.width}px: focused map must scroll horizontally with keyboard arrows`);
+      await evaluate("(() => { const map = document.querySelector('.graph-stage'); map.scrollLeft = 0; map.blur(); })()");
+      console.log(`${viewport.width}x${viewport.height}: keyboard navigation and map scrolling verified (scrollLeft=${keyboardScroll}).`);
+    }
     console.log(`${viewport.width}x${viewport.height}: no horizontal overflow; controls usable; Python result and SVG path verified.`);
   }
 } finally {
@@ -306,46 +345,55 @@ async function waitForPage(evaluate) {
 
 async function waitForResult(evaluate) {
   for (let attempt = 0; attempt < 100; attempt += 1) {
-    const result = await evaluate(`(async () => {
+    const rendered = await evaluate(`(() => {
       const title = document.querySelector('.result-title')?.textContent ?? '';
       if (!title) return null;
       const pathEdges = document.querySelectorAll('.road-highlight').length;
       const mode = document.querySelector('[name="mode"]:checked')?.value ?? 'single';
       const algorithm = document.querySelector('[name="algorithm"]:checked')?.value ?? 'dijkstra';
-      const request = {
-        origin: document.querySelector('#origin').value,
-        destination: document.querySelector('#destination').value,
-      };
-      const compare = mode === 'compare';
-      if (!compare) request.algorithm = algorithm;
-      const response = await fetch(compare ? '/api/routes/compare' : '/api/routes/compute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-      });
-      if (!response.ok) throw new Error('Python route endpoint returned HTTP ' + response.status);
-      const payload = await response.json();
-      const apiResult = compare ? payload[algorithm] : payload;
+      const origin = document.querySelector('#origin').value;
+      const destination = document.querySelector('#destination').value;
       const numbers = [...document.querySelectorAll('.result-number .number')].map(element => element.textContent.trim());
-      const originNode = [...document.querySelectorAll('.svg-node')].find(node => node.dataset.nodeId === apiResult.origin);
-      const destinationNode = [...document.querySelectorAll('.svg-node')].find(node => node.dataset.nodeId === apiResult.destination);
+      const originNode = [...document.querySelectorAll('.svg-node')].find(node => node.dataset.nodeId === origin);
+      const destinationNode = [...document.querySelectorAll('.svg-node')].find(node => node.dataset.nodeId === destination);
       return {
-        found: apiResult.found && title.includes('Camino encontrado'),
+        title,
+        mode,
+        algorithm,
+        origin,
+        destination,
         pathEdges,
-        apiAlgorithm: apiResult.algorithm,
-        apiOrigin: apiResult.origin,
-        apiDestination: apiResult.destination,
-        apiPath: apiResult.path,
-        apiWeight: apiResult.total_weight,
-        apiHops: apiResult.hops,
-        renderedPath: [...document.querySelectorAll('.route-node')].map(element => element.textContent.trim()),
+        renderedPath: [...document.querySelectorAll('.route-node')].map(element => element.dataset.nodeId),
         renderedWeight: numbers[0],
         renderedHops: numbers[1],
         selectedEndpoints: originNode?.classList.contains('is-origin')
           && destinationNode?.classList.contains('is-destination'),
       };
     })()`);
-    if (result) return result;
+    if (rendered) {
+      const compare = rendered.mode === 'compare';
+      const request = { origin: rendered.origin, destination: rendered.destination };
+      if (!compare) request.algorithm = rendered.algorithm;
+      const endpoint = new URL(compare ? '/api/routes/compare' : '/api/routes/compute', pageUrl);
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      });
+      assert.ok(response.ok, `Python route endpoint returned HTTP ${response.status}`);
+      const payload = await response.json();
+      const apiResult = compare ? payload[rendered.algorithm] : payload;
+      return {
+        ...rendered,
+        found: apiResult.found && rendered.title.includes('Camino encontrado'),
+        apiAlgorithm: apiResult.algorithm,
+        apiOrigin: apiResult.origin,
+        apiDestination: apiResult.destination,
+        apiPath: apiResult.path,
+        apiWeight: apiResult.total_weight,
+        apiHops: apiResult.hops,
+      };
+    }
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   throw new Error("The route calculation did not produce a visible result.");
