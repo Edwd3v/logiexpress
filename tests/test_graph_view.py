@@ -17,11 +17,12 @@ def test_plot_contains_all_nodes_edges_weights_and_highlights_selected_path():
     weights = next(trace for trace in figure.data if trace.name == "Costos")
 
     assert tuple(node_trace.text) == graph.node_ids()
-    assert len(regular_edges.x) == 12
+    assert len(regular_edges.x) == 90
     assert len(highlighted.x) == 9
     assert regular_edges.line.color == "#cbd7e5"
     assert highlighted.line.color == "#078b7e"
-    assert sorted(weights.text) == ["1", "1", "1", "20", "4", "4", "4"]
+    assert len(weights.text) == 33
+    assert weights.text.count("20") == 1
     assert weights.textfont.color == "#17243B"
     assert node_trace.textfont.color == "#17243B"
     assert figure.layout.legend.font.color == "#334155"
@@ -32,13 +33,13 @@ def test_plot_contains_all_nodes_edges_weights_and_highlights_selected_path():
 
 def test_unreachable_result_builds_figure_without_false_zero_cost():
     graph = build_demo_graph()
-    graph.add_node("G")
-    result = compare_routes(graph, "A", "G")["bfs"]
+    graph.add_node("Z")
+    result = compare_routes(graph, "A", "Z")["bfs"]
 
     figure = build_graph_figure(graph, result)
 
     node_trace = next(trace for trace in figure.data if trace.name == "Ubicaciones")
-    assert "G" in node_trace.text
+    assert "Z" in node_trace.text
     assert (
         next(trace for trace in figure.data if trace.name == "Ruta seleccionada").x
         == ()
@@ -81,7 +82,7 @@ def test_graph_can_hide_edge_weights_without_removing_network_data():
         + len(
             next(trace for trace in figure.data if trace.name == "Ruta seleccionada").x
         )
-        == 21
+        == 99
     )
 
 

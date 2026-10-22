@@ -132,6 +132,7 @@ try {
         controlsVisible: visible,
         clipped,
         nodes: document.querySelectorAll('.svg-node').length,
+        roads: document.querySelectorAll('.road-surface').length,
         overflow: [...document.body.querySelectorAll('*')]
           .map(element => ({ element, rect: element.getBoundingClientRect() }))
           .filter(({ element, rect }) => rect.width > 0
@@ -141,7 +142,8 @@ try {
           .map(({ element, rect }) => ({ tag: element.tagName, className: String(element.className?.baseVal ?? element.className ?? '').slice(0, 80), left: Math.round(rect.left), right: Math.round(rect.right) }))
       };
     })()`);
-    assert.equal(before.nodes, 6, `${viewport.width}px: graph must be loaded from FastAPI`);
+    assert.equal(before.nodes, 18, `${viewport.width}px: graph must be loaded from FastAPI`);
+    assert.equal(before.roads, 33, `${viewport.width}px: all backend roads must be rendered`);
     assert.equal(before.viewport, viewport.width, `${viewport.width}px: use the requested CSS viewport width`);
     assert.equal(before.viewportHeight, viewport.height, `${viewport.width}px: use the requested CSS viewport height`);
     assert.equal(before.controlsVisible, true, `${viewport.width}px: route controls must fit the viewport`);
@@ -184,15 +186,15 @@ try {
       const origin = document.querySelector('#origin');
       const destination = document.querySelector('#destination');
       const setValue = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-      setValue.call(origin, 'B');
+      setValue.call(origin, 'K');
       origin.dispatchEvent(new Event('change', { bubbles: true }));
-      setValue.call(destination, 'C');
+      setValue.call(destination, 'R');
       destination.dispatchEvent(new Event('change', { bubbles: true }));
     })()`);
     await evaluate(`document.querySelector('form.controls button[type="submit"]').click()`);
     const selectedPairResult = await waitForResult(evaluate);
-    assert.equal(selectedPairResult.apiOrigin, "B", `${viewport.width}px: selected origin must be sent to FastAPI`);
-    assert.equal(selectedPairResult.apiDestination, "C", `${viewport.width}px: selected destination must be sent to FastAPI`);
+    assert.equal(selectedPairResult.apiOrigin, "K", `${viewport.width}px: selected origin must be sent to FastAPI`);
+    assert.equal(selectedPairResult.apiDestination, "R", `${viewport.width}px: selected destination must be sent to FastAPI`);
     assert.equal(selectedPairResult.selectedEndpoints, true, `${viewport.width}px: selected endpoints must be marked on the map`);
 
     await evaluate(`(() => {
@@ -295,7 +297,7 @@ function waitForSocket(webSocket) {
 
 async function waitForPage(evaluate) {
   for (let attempt = 0; attempt < 100; attempt += 1) {
-    const loaded = await evaluate("document.readyState === 'complete' && document.querySelectorAll('.svg-node').length === 6");
+    const loaded = await evaluate("document.readyState === 'complete' && document.querySelectorAll('.svg-node').length === 18 && document.querySelectorAll('.road-surface').length === 33");
     if (loaded) return;
     await new Promise(resolve => setTimeout(resolve, 100));
   }

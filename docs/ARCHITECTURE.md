@@ -1,7 +1,7 @@
 # Arquitectura de LogiExpress
 
 **Estado:** núcleo Python, API FastAPI y frontend React + TypeScript + Vite están implementados e integrados mediante HTTP. Streamlit/Plotly se conserva como interfaz anterior. `feature/react-fastapi-integration` (`2bdd815`) es el candidato publicado y todavía no se fusionó en `main`.
-**Fecha de actualización:** 2026-10-20.
+**Fecha de actualización:** 2026-10-22.
 **Audiencia:** estudiante desarrollador, OpenCode y evaluación académica.
 **Documento complementario:** `CONTRACTS.md`.
 
@@ -150,7 +150,13 @@ Los tres reciben un `Graph`, un origen y un destino válidos, y producen `RouteR
 
 La vista debe distinguir cuatro medidas: algoritmo, orden real de visita, camino reconstruido y suma de pesos de ese camino; indicar también cantidad de saltos. En los recorridos se puede detener la exploración al encontrar el destino, si se documenta esa decisión (esta es la convención inicial).
 
-## 7. Ejemplo ficticio reproducible
+## 7. Escenarios ficticios reproducibles
+
+El escenario operativo implementado en `infrastructure/sample_data.py` contiene 18 nodos (A–R) y 33 conexiones no dirigidas con costos abstractos, finitos y no negativos. `GET /api/graph` expone cada conexión una sola vez; los servicios ejecutan BFS, DFS y Dijkstra sobre el `Graph` compartido. La geometría SVG de React solo guarda posiciones y caminos visuales: no es una fuente de pesos ni de resultados. El HTML aprobado `docs/prototypes/logiexpress_mapa_simulado_18_nodos.html` se utiliza como referencia de contraste y no se lee en tiempo de ejecución. `build_academic_graph()` conserva el escenario original de seis nodos exclusivamente para las pruebas y ejemplos académicos heredados.
+
+Se verificó la topología operativa contra el bloque JSON del HTML: exactamente 18 identificadores de A a R y 33 pares únicos, sin extremos desconocidos ni pesos inválidos. La posición y el trazado de cada una de las 33 vías tienen correspondencia en la geometría SVG preparada en el Incremento 1.
+
+### Escenario académico original (seis nodos)
 
 Grafo propuesto (aristas **no dirigidas**):
 
@@ -184,8 +190,9 @@ El frontend React presenta controles de origen/destino, ejecución individual o 
 - Unitarias de algoritmos: rutas, orden de visita, costo, desconexión, ciclos, cero, empates, mismo origen/destino.
 - Servicio: solicitud inválida, elección de algoritmo y coherencia de `RouteResult`.
 - Pruebas de interfaz: manuales o automáticas proporcionales al MVP.
-- **Verificación ejecutada en Python 3.13.5:** 130 pruebas pytest, `ruff check .`, `pip check`, formato dirigido de los archivos nuevos y un smoke HTTP de Streamlit. `ruff format --check .` conserva cinco hallazgos ya presentes en `main`: `docs/CONTRACTS.md` y cuatro pruebas existentes; Python 3.10 aún no se ha probado.
-- **Frontend/integración:** 15 pruebas Vitest, TypeScript, build de producción y prueba responsive Chromium. Las revisiones RDD anteriores quedaron incompletas y no son aprobaciones.
+- **Incremento 2, Python 3.13.5:** 138 pruebas pytest, `ruff check .` y `pip check` completados. El smoke HTTP devolvió 18 nodos, 33 aristas no dirigidas y resultados ejecutados en Python para BFS, DFS y Dijkstra; los costos de A→D fueron 20, 12 y 3, respectivamente.
+- **Incremento 2, frontend/integración:** 20 pruebas Vitest, TypeScript y build de producción completados. Chromium comprobó la carga real de FastAPI, 18 nodos, 33 carreteras, controles y rutas/costos en viewports 390×844, 375×812, 768×1024, 1366×768 y 1440×900; sin overflow horizontal ni errores de correspondencia.
+- `ruff format --check .` conservaba cinco hallazgos históricos en `main` (`docs/CONTRACTS.md` y cuatro pruebas existentes); no se reformateó código ajeno al incremento. Python 3.10 no se probó. Las revisiones RDD anteriores quedaron incompletas y no son aprobaciones.
 
 ## 10. Evolución controlada
 

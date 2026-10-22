@@ -56,6 +56,8 @@ def test_graph_returns_demo_nodes_and_one_stable_record_per_undirected_edge(
     graph = build_demo_graph()
     assert payload["directed"] is False
     assert payload["nodes"] == list(graph.node_ids())
+    assert len(payload["nodes"]) == 18
+    assert len(payload["edges"]) == 33
     assert payload["edges"] == [
         {"source": source, "target": target, "weight": weight}
         for source in graph.node_ids()
@@ -65,6 +67,28 @@ def test_graph_returns_demo_nodes_and_one_stable_record_per_undirected_edge(
     edge_keys = [(edge["source"], edge["target"]) for edge in payload["edges"]]
     assert len(edge_keys) == len(set(edge_keys))
     assert all(source < target for source, target in edge_keys)
+
+
+@pytest.mark.parametrize("node", ["G", "K", "M", "R"])
+def test_routes_accept_nodes_from_the_expanded_graph(
+    client: TestClient, node: str
+) -> None:
+    response = client.post(
+        "/api/routes/compute",
+        json={"origin": "A", "destination": node, "algorithm": "dijkstra"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["origin"] == "A"
+    assert response.json()["destination"] == node
+    assert response.json()["found"] is True
+
+    comparison = client.post(
+        "/api/routes/compare", json={"origin": node, "destination": "A"}
+    )
+    assert comparison.status_code == 200
+    assert set(comparison.json()) == {"bfs", "dfs", "dijkstra"}
+    assert all(result["found"] for result in comparison.json().values())
 
 
 @pytest.mark.parametrize("algorithm", ["bfs", "dfs", "dijkstra"])

@@ -44,7 +44,9 @@ Elegí origen, destino y algoritmo, o activá la comparación de los tres. El gr
 
 ## API HTTP
 
-FastAPI expone el grafo ficticio compartido y delega los cálculos a `route_service`; no contiene implementaciones de BFS, DFS ni Dijkstra. El frontend React consume esos endpoints y no incluye una copia de los algoritmos. Streamlit continúa consumiendo los mismos servicios Python.
+FastAPI expone el escenario operativo ficticio de **18 nodos (A–R) y 33 conexiones no dirigidas** y delega los cálculos a `route_service`; no contiene implementaciones de BFS, DFS ni Dijkstra. Los pesos son costos abstractos ilustrativos, no distancias ni datos geográficos. El escenario se construye directamente en `src/logiexpress/infrastructure/sample_data.py`; la geometría SVG de React solo aporta posiciones y trazados visuales. `docs/prototypes/logiexpress_mapa_simulado_18_nodos.html` es la referencia aprobada para contrastar la topología, no una fuente de datos en tiempo de ejecución. La fixture académica original de seis nodos se conserva por separado mediante `build_academic_graph()`.
+
+React obtiene nodos, conexiones y pesos desde `GET /api/graph`; resalta el camino devuelto por los servicios Python y mantiene separado su `visited_order`. BFS minimiza saltos, DFS muestra un camino posible sin garantizar optimalidad y Dijkstra minimiza el costo total con pesos no negativos. La comparación presenta los tres resultados sin declarar un ganador universal. Streamlit también consume el escenario operativo y los mismos servicios Python.
 
 | Endpoint | Uso |
 |---|---|

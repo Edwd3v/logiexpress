@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
+import { simulatedMapGeometry } from "./data/simulatedMapGeometry";
 
 const graph = {
   nodes: ["A", "E", "F"],
@@ -28,6 +29,37 @@ function result(algorithm: "bfs" | "dfs" | "dijkstra", path: string[] | null) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("API-backed dashboard", () => {
+  it("loads all backend locations and lets the user select an added location", async () => {
+    const expandedGraph = {
+      nodes: Object.keys(simulatedMapGeometry.nodes),
+      edges: simulatedMapGeometry.roads.map(({ source, target }, index) => ({
+        source,
+        target,
+        weight: index + 1,
+      })),
+      directed: false as const,
+    };
+    const route = { ...result("dijkstra", ["A", "B", "H", "R"]), destination: "R", hops: 3 };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json(expandedGraph))
+      .mockResolvedValueOnce(Response.json(route));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await waitFor(() => expect(document.querySelectorAll(".svg-node")).toHaveLength(18));
+    expect(document.querySelectorAll(".road-surface")).toHaveLength(33);
+    expect(screen.getByLabelText("Destino").querySelector('option[value="R"]')).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: /Ruta individual/ }));
+    fireEvent.change(screen.getByLabelText("Destino"), { target: { value: "R" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ejecutar análisis" }));
+
+    await screen.findByText("Camino encontrado · Dijkstra");
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
+      body: JSON.stringify({ origin: "A", destination: "R", algorithm: "dijkstra" }),
+    });
+  });
+
   it("renders the graph returned by FastAPI rather than the fixed demo graph", async () => {
     const fetchMock = vi.fn().mockResolvedValue(Response.json(graph));
     vi.stubGlobal("fetch", fetchMock);
