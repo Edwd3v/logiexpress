@@ -1,5 +1,7 @@
 # Validación responsive de React + FastAPI
 
+La captura muestra un **mapa esquemático**, no una cartografía geográfica. Las ubicaciones, conexiones y pesos corresponden a un escenario **ficticio**; sus pesos son **costos abstractos** y no distancias ni tiempos reales. Las comprobaciones validan la presentación y correspondencia con la API, no la realidad de una red logística.
+
 ## Causa de la captura recortada
 
 La captura inicial no representaba un viewport CSS de 390 × 844. En este entorno, `--window-size=390,844` fijó el tamaño exterior/captura de Chromium, pero no emuló esas dimensiones CSS: el target de DevTools reportó un viewport mayor y la imagen de 390 px recortó su contenido. El layout no tenía desbordamiento horizontal en un viewport móvil real. No se añadió `overflow-x: hidden` ni se alteró el CSS para ocultar el síntoma.

@@ -1,84 +1,93 @@
 # LogiExpress
 
-Kit de **arquitectura e instrucciones para OpenCode** del proyecto académico LogiExpress (Python, Estructuras de Datos).
+Proyecto académico didáctico para representar una red logística ficticia y comparar BFS, DFS y Dijkstra. La arquitectura vigente es **React + TypeScript + Vite → FastAPI → servicios Python → dominio y algoritmos Python**. Streamlit/Plotly se conserva como interfaz anterior y reutiliza los servicios Python.
 
-**Estado actual:** núcleo Python con grafo propio, BFS, DFS y Dijkstra; servicios de rutas; API REST FastAPI; y frontend React + TypeScript + Vite integrado mediante HTTP. Streamlit/Plotly se conserva como interfaz anterior durante la transición. La red y sus costos son ficticios; la visualización no representa coordenadas geográficas.
+**Estado del código:** esta documentación corresponde a la rama `feature/logiexpress-visual-identity-b` (HEAD esperado `6e85f20274cd8b05b722de00840286cbcbde04f2`). Verificá la rama y el commit efectivos con `git status --short --branch` y `git rev-parse HEAD` antes de preparar una demostración. La rúbrica oficial del docente no está disponible en el repositorio, así que su cumplimiento permanece pendiente de validación.
 
-**Entrega:** las ramas `feature/fastapi-foundation` (`7fddb6e`), `feature/react-frontend` (`77f4050`) y `feature/react-fastapi-integration` (`2bdd815`) están publicadas. La integración es el candidato actual y todavía no se ha fusionado en `main`. Las revisiones RDD anteriores constan como incompletas, no aprobadas.
+## Requisitos
 
-## Archivos iniciales
+- Python 3.10 o posterior; la versión de Python usada en verificaciones anteriores fue 3.13.5.
+- Node.js y npm compatibles con las dependencias fijadas en `frontend/package-lock.json`.
+- Para las pruebas Python, instalar el extra de desarrollo del proyecto.
 
-```text
-logiexpress/
-├── AGENTS.md
-├── README.md
-├── opencode.json
-├── .opencode/
-│   └── agents/
-│       ├── architect.md
-│       └── algorithm-reviewer.md
-└── docs/
-    ├── ARCHITECTURE.md
-    ├── REQUIREMENTS.md
-    ├── CONTRACTS.md
-    ├── DECISIONS.md
-    ├── IMPLEMENTATION_PLAN.md
-    └── OPENCODE_GUIDE.md
+## Instalación y ejecución
+
+Desde la raíz del repositorio, crea el entorno e instala el paquete:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
 ```
 
-El núcleo y la primera interfaz están implementados en `src/`, con pruebas en `tests/` y lanzador `app.py`.
+Inicia FastAPI en una terminal:
 
-## Primeros pasos
+```bash
+python -m uvicorn logiexpress.api.main:app --reload --host 127.0.0.1 --port 8000
+```
 
-1. Instala Python 3.10 o posterior (la validación de esta integración se ejecutó con Python 3.13.5; Python 3.10 sigue pendiente).
-2. Crea y activa un entorno virtual: `python -m venv .venv` y `source .venv/bin/activate`.
-3. Instala el paquete y las herramientas de desarrollo dentro del entorno: `python -m pip install -e '.[dev]'`.
-4. Inicia FastAPI desde la raíz del repositorio: `python -m uvicorn logiexpress.api.main:app --reload`.
-5. En otra terminal, instala y ejecuta el frontend: `cd frontend && npm ci && npm run dev`. Vite reenvía `/api/*` a `http://127.0.0.1:8000`; `LOGIEXPRESS_API_TARGET` permite configurar otro destino local.
-6. Abre la documentación interactiva en `http://127.0.0.1:8000/docs`. Para usar la interfaz anterior, ejecuta `streamlit run app.py`.
-7. Ejecuta las verificaciones: `pytest -q`, `ruff check .` y, desde `frontend/`, `npm test` y `npm run build`.
+En otra terminal, instala y ejecuta React con Vite:
 
-## Uso del dashboard
+```bash
+cd frontend
+npm ci
+npm run dev -- --host 127.0.0.1 --port 5173
+```
 
-Elegí origen, destino y algoritmo, o activá la comparación de los tres. El grafo conserva las mismas posiciones esquemáticas en cada ejecución; los costos son abstractos y ficticios. El camino resaltado y el orden de exploración se muestran por separado.
+Abre `http://127.0.0.1:5173/`. Vite reenvía `/api/*` a `http://127.0.0.1:8000`; `LOGIEXPRESS_API_TARGET` permite indicar otro destino local. La documentación interactiva de FastAPI está en `http://127.0.0.1:8000/docs`.
+
+La interfaz anterior de Streamlit puede ejecutarse desde la raíz, con el mismo entorno Python:
+
+```bash
+streamlit run app.py
+```
+
+## Uso y alcance de la demostración
+
+Selecciona origen, destino y algoritmo para calcular una ruta, o ejecuta la comparación BFS/DFS/Dijkstra. El tablero permite alternar entre la red completa, el camino devuelto y el orden de exploración; este último no es necesariamente un camino continuo.
+
+El mapa es **esquemático**, no geográfico: sus posiciones y trazados solo sirven para visualizar el grafo. Las ubicaciones, conexiones y pesos son **datos ficticios**. Cada peso representa un **costo abstracto**, no kilómetros, tiempo ni costos operativos reales. El escenario de la API tiene 18 nodos (A–R) y 33 conexiones no dirigidas.
+
+BFS busca el mínimo número de aristas, DFS presenta un camino posible sin garantía de optimalidad y Dijkstra minimiza el costo total con pesos no negativos. Ninguno resuelve optimización de entregas múltiples.
 
 ## API HTTP
 
-FastAPI expone el escenario operativo ficticio de **18 nodos (A–R) y 33 conexiones no dirigidas** y delega los cálculos a `route_service`; no contiene implementaciones de BFS, DFS ni Dijkstra. Los pesos son costos abstractos ilustrativos, no distancias ni datos geográficos. El escenario se construye directamente en `src/logiexpress/infrastructure/sample_data.py`; la geometría SVG de React solo aporta posiciones y trazados visuales. `docs/prototypes/logiexpress_mapa_simulado_18_nodos.html` es la referencia aprobada para contrastar la topología, no una fuente de datos en tiempo de ejecución. La fixture académica original de seis nodos se conserva por separado mediante `build_academic_graph()`.
-
-React obtiene nodos, conexiones y pesos desde `GET /api/graph`; resalta el camino devuelto por los servicios Python y mantiene separado su `visited_order`. BFS minimiza saltos, DFS muestra un camino posible sin garantizar optimalidad y Dijkstra minimiza el costo total con pesos no negativos. La comparación presenta los tres resultados sin declarar un ganador universal. Streamlit también consume el escenario operativo y los mismos servicios Python.
+FastAPI expone los servicios Python existentes; ni la API ni React reimplementan los algoritmos.
 
 | Endpoint | Uso |
 |---|---|
 | `GET /api/health` | Comprueba que el proceso HTTP responde. |
-| `GET /api/graph` | Devuelve los nodos y cada conexión no dirigida una sola vez. |
-| `POST /api/routes/compute` | Calcula una ruta; ejemplo: `{"origin":"A","destination":"D","algorithm":"dijkstra"}`. |
-| `POST /api/routes/compare` | Devuelve resultados separados para `bfs`, `dfs` y `dijkstra`; ejemplo: `{"origin":"A","destination":"D"}`. |
+| `GET /api/graph` | Devuelve nodos y conexiones no dirigidas, una vez cada una. |
+| `POST /api/routes/compute` | Calcula una ruta; cuerpo de ejemplo: `{"origin":"A","destination":"D","algorithm":"dijkstra"}`. |
+| `POST /api/routes/compare` | Devuelve los resultados separados de `bfs`, `dfs` y `dijkstra`; cuerpo: `{"origin":"A","destination":"D"}`. |
 
-Las respuestas de rutas conservan `algorithm`, `origin`, `destination`, `visited_order`, `path`, `hops`, `total_weight` y `found`. Los campos métricos son `null` cuando no existe ruta. La API usa los mismos servicios y datos que la interfaz Streamlit.
+Las respuestas de ruta incluyen `algorithm`, `origin`, `destination`, `visited_order`, `path`, `hops`, `total_weight` y `found`. Si no existe ruta, `path`, `hops` y `total_weight` son `null`. Los pesos y resultados son ficticios y no describen una red logística real.
 
-Ejemplos con `curl`:
+## Verificaciones
+
+Desde la raíz del repositorio:
 
 ```bash
-curl http://127.0.0.1:8000/api/health
-curl http://127.0.0.1:8000/api/graph
-curl -X POST http://127.0.0.1:8000/api/routes/compute \
-  -H 'Content-Type: application/json' \
-  -d '{"origin":"A","destination":"D","algorithm":"dijkstra"}'
-curl -X POST http://127.0.0.1:8000/api/routes/compare \
-  -H 'Content-Type: application/json' \
-  -d '{"origin":"A","destination":"D"}'
+python -m pytest -q
+ruff check .
+git diff --check
 ```
 
-No se habilita CORS mientras no exista el cliente React; cuando se integre en desarrollo, los orígenes exactos deberán configurarse explícitamente.
+Desde `frontend/`:
 
-## Convenciones del repositorio
+```bash
+npm test
+npm run build
+```
 
-- **Nombres de archivos, directorios, módulos, clases y funciones en inglés**.
-- **Contenido de documentación y explicación académica en español**.
-- `AGENTS.md` es el archivo raíz de instrucciones; los agentes especializados viven en `.opencode/agents/`.
-- Los documentos son propuestas hasta que el usuario y una rúbrica disponible ratifiquen las decisiones.
+La comprobación responsive integrada requiere iniciar FastAPI y Vite, y disponer de Chrome/Chromium. Consulta `docs/RESPONSIVE_VALIDATION.md` para sus instrucciones.
 
-No edites `uv.lock` manualmente cuando sea generado por `uv`.
-# logiexpress
-# logiexpress
+## Documentación del proyecto
+
+- `docs/ARCHITECTURE.md`: módulos, dependencias y responsabilidades.
+- `docs/CONTRACTS.md`: contratos y casos límite.
+- `docs/REQUIREMENTS.md`: capacidades sintetizadas, no una rúbrica oficial.
+- `docs/DECISIONS.md` y `docs/IMPLEMENTATION_PLAN.md`: decisiones y evolución prevista.
+- `frontend/README.md`: ejecución y pruebas específicas del cliente web.
+
+La arquitectura y el diseño aprobados delimitan el MVP. Persistencia, GPS, autenticación, despliegue complejo y optimización multidestino no forman parte de esta demostración.
