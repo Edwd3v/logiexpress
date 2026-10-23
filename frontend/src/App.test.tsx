@@ -24,7 +24,7 @@ const route = {
 };
 
 function comparison() {
-  return { bfs: route, dfs: { ...route, algorithm: "dfs" as const }, dijkstra: route };
+  return { bfs: { ...route, algorithm: "bfs" as const }, dfs: { ...route, algorithm: "dfs" as const }, dijkstra: route };
 }
 
 async function renderReady() {
@@ -57,11 +57,28 @@ describe("LogiExpress dashboard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Ejecutar análisis" }));
     await waitFor(() => expect(document.querySelector(".result-title")?.textContent).toContain("Camino encontrado"));
 
-    const bfsCard = screen.getByRole("button", { name: /Ver resultado BFS/ });
-    fireEvent.click(bfsCard);
-    expect(bfsCard.getAttribute("aria-pressed")).toBe("true");
+    for (const algorithm of ["bfs", "dfs", "dijkstra"] as const) {
+      const card = screen.getByRole("button", { name: new RegExp(`Ver resultado ${algorithm}`, "i") });
+      fireEvent.click(card);
+      expect(card.getAttribute("aria-pressed")).toBe("true");
+      expect(screen.getByRole("heading", { name: `Resultado de ${algorithm === "dijkstra" ? "Dijkstra" : algorithm.toUpperCase()}` })).toBeTruthy();
+      expect(document.querySelector(".road-highlight")?.getAttribute("style")).toContain(
+        { bfs: "#c77734", dfs: "#7659bc", dijkstra: "#078b7e" }[algorithm],
+      );
+    }
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/routes/compare");
     expect(document.querySelectorAll(".road-highlight")).toHaveLength(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears old result metrics when endpoints change", async () => {
+    await renderReady();
+    fireEvent.click(screen.getByRole("button", { name: "Ejecutar análisis" }));
+    await waitFor(() => expect(document.querySelectorAll(".route-result-metric")).toHaveLength(2));
+
+    fireEvent.change(screen.getByLabelText("Destino"), { target: { value: "E" } });
+    expect(screen.getByText("Análisis pendiente")).toBeTruthy();
+    expect(document.querySelectorAll(".route-result-metric")).toHaveLength(0);
   });
 
   it("swaps endpoints, toggles dynamic edge weights, and resets controls", async () => {
@@ -138,7 +155,7 @@ describe("LogiExpress dashboard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Ejecutar análisis" }));
     await waitFor(() => expect(document.querySelector(".result-title")?.textContent).toContain("Camino encontrado"));
-    expect(document.querySelector(".route")?.textContent).toContain("A · Centro Occidente");
-    expect(document.querySelector(".route")?.textContent).toContain("F · Consolidación Sur");
+    expect(document.querySelector(".result-steps")?.textContent).toContain("A · Centro Occidente");
+    expect(document.querySelector(".result-steps")?.textContent).toContain("F · Consolidación Sur");
   });
 });

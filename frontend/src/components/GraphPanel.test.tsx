@@ -48,7 +48,6 @@ function renderGraph(inputGraph = graph, inputResult: RouteResult | null = resul
       showExploration={showExploration}
       onToggleExploration={vi.fn()}
       isLoading={false}
-      errorMessage={null}
     />,
   );
 }
@@ -95,9 +94,7 @@ describe("GraphPanel simulated road geometry", () => {
     expect(document.querySelector('[data-node-id="A"]')?.classList.contains("is-path")).toBe(true);
     expect(document.querySelector('[data-node-id="D"]')?.classList.contains("is-destination")).toBe(true);
     expect(document.querySelector('[data-node-id="D"]')?.classList.contains("is-path")).toBe(true);
-    expect(document.querySelector(".visit-sequence")?.textContent).toContain("A · Centro Occidente");
-    expect(document.querySelector(".route")?.textContent).toContain("E · Microhub Central");
-    expect(document.querySelector(".route")?.textContent).toContain("D · Terminal Oriente");
+    expect(document.querySelectorAll(".road-highlight")).toHaveLength(3);
   });
 
   it("uses each selected algorithm's route color", () => {

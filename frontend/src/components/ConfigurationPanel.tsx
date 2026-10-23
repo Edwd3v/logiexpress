@@ -60,7 +60,7 @@ export function ConfigurationPanel({ nodes, disabled, state, onChange, onSubmit 
       </div>
 
       <div className="selector-grid">
-        <div>
+        <div className="selector-field">
           <label className="field-name" htmlFor="origin">Origen</label>
           <div className="select-wrap">
             <select
@@ -88,7 +88,7 @@ export function ConfigurationPanel({ nodes, disabled, state, onChange, onSubmit 
             <Icon name="swap" size={15} />
           </button>
         </div>
-        <div>
+        <div className="selector-field">
           <label className="field-name" htmlFor="destination">Destino</label>
           <div className="select-wrap">
             <select

@@ -94,8 +94,8 @@ describe("API-backed dashboard", () => {
     await waitFor(() => expect(document.querySelector(".result-title")?.textContent).toContain("Camino encontrado"));
     expect(screen.getAllByText(/Orden de exploración/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Camino encontrado/).length).toBeGreaterThan(0);
-    expect(document.querySelector(".route")?.textContent).toContain("A · Centro Occidente");
-    expect(document.querySelector(".route")?.textContent).toContain("F · Consolidación Sur");
+    expect(document.querySelector(".result-steps")?.textContent).toContain("A · Centro Occidente");
+    expect(document.querySelector(".result-steps")?.textContent).toContain("F · Consolidación Sur");
     expect(document.querySelectorAll(".road-highlight")).toHaveLength(2);
   });
 
@@ -197,7 +197,7 @@ describe("API-backed dashboard", () => {
     await waitFor(() => expect(document.querySelectorAll(".road-highlight")).toHaveLength(1));
     finishFirst(Response.json(firstComparison));
     await waitFor(() => expect(document.querySelectorAll(".road-highlight")).toHaveLength(1));
-    expect(document.querySelector(".route")?.textContent).toContain("A · Centro Occidente");
-    expect(document.querySelector(".route")?.textContent).toContain("Microhub Central");
+    expect(document.querySelector(".result-steps")?.textContent).toContain("A · Centro Occidente");
+    expect(document.querySelector(".result-steps")?.textContent).toContain("Microhub Central");
   });
 });

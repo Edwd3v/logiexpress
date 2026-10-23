@@ -60,7 +60,7 @@ export function LearningGuide() {
         <div>
           <h2>¿Cómo interpretar los resultados?</h2>
           <p>
-            <strong>BFS</strong> minimiza la cantidad de saltos, no necesariamente el costo. <strong>DFS</strong> recorre en profundidad y no garantiza un camino mínimo. <strong>Dijkstra</strong> minimiza la suma de pesos cuando todos son no negativos. Los pesos de esta demo representan <strong>costos ficticios</strong>, no kilómetros ni tiempos reales.
+            No existe un ganador universal: cada algoritmo responde a un criterio distinto, ya sean los saltos, la exploración o el costo.
           </p>
         </div>
       </div>

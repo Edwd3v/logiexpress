@@ -4,6 +4,7 @@ import { AlgorithmComparison } from "./components/AlgorithmComparison";
 import { ConfigurationPanel } from "./components/ConfigurationPanel";
 import { Footer, LearningGuide, MetricCards, PageHeader, Toast, TopBar } from "./components/DashboardSections";
 import { GraphPanel } from "./components/GraphPanel";
+import { RouteResultPanel } from "./components/RouteResultPanel";
 import { Sidebar, type DashboardSection } from "./components/Sidebar";
 import { compareRoutes, computeRoute, getGraph, HttpApiError } from "./services/api";
 import type { AlgorithmName, CompareRoutesResponse, GraphResponse, RouteResult } from "./types/api";
@@ -185,10 +186,15 @@ export default function App() {
               onToggleWeights={(showWeights) => updateState({ showWeights })}
               showExploration={state.showExploration}
               onToggleExploration={(showExploration) => updateState({ showExploration })}
-              isLoading={graphLoading || routeLoading}
-              errorMessage={resultMessage}
+              isLoading={graphLoading}
             />
           </section>
+          <RouteResultPanel
+            algorithm={state.algorithm}
+            result={currentResult}
+            isLoading={graphLoading || routeLoading}
+            errorMessage={resultMessage}
+          />
           {state.mode === "compare" && (
             <AlgorithmComparison
               selectedAlgorithm={state.algorithm}

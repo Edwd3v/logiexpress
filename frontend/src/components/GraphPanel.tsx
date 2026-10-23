@@ -17,7 +17,6 @@ interface GraphPanelProps {
   showExploration: boolean;
   onToggleExploration: (showExploration: boolean) => void;
   isLoading: boolean;
-  errorMessage: string | null;
 }
 
 export function GraphPanel({
@@ -31,7 +30,6 @@ export function GraphPanel({
   showExploration,
   onToggleExploration,
   isLoading,
-  errorMessage,
 }: GraphPanelProps) {
   const activeAlgorithm = result?.algorithm ?? algorithm;
   const routeColor = algorithmDetails[activeAlgorithm].color;
@@ -148,8 +146,8 @@ export function GraphPanel({
             />
           </div>
         ) : (
-          <div className="graph-empty" role={errorMessage ? "alert" : "status"}>
-            {errorMessage ?? (isLoading ? "Cargando grafo desde FastAPI…" : "El grafo no está disponible.")}
+          <div className="graph-empty">
+            {isLoading ? "Cargando grafo desde FastAPI…" : "Grafo no disponible. Consulta el estado en el panel de resultados."}
           </div>
         )}
       </div>
@@ -188,38 +186,6 @@ export function GraphPanel({
             <span className="legend-item"><span className="endpoint-marker origin-marker" aria-hidden="true">O</span>Origen · {locationLabel(origin)}</span>
             <span className="legend-item"><span className="endpoint-marker destination-marker" aria-hidden="true">D</span>Destino · {locationLabel(destination)}</span>
           </div>
-          {isLoading && <div className="request-status" role="status">Consultando FastAPI…</div>}
-          {errorMessage && <div className="api-error" role="alert">{errorMessage}</div>}
-          {result && (
-            <div className="result-strip" aria-live="polite" aria-atomic="true">
-              <div className="route-result-copy">
-                <div className={`result-kicker result-title ${result.found ? "is-found" : "is-unreachable"}`}>
-                  <Icon name={result.found ? "check" : "info"} />
-                  <span className="result-algorithm">{algorithmDetails[result.algorithm].name}</span>
-                  <span className="result-state">{result.found ? "Camino encontrado" : "Destino inaccesible"}</span>
-                </div>
-                <div className="route">
-                  {result.path ? result.path.map((node, index) => (
-                    <span className="route-segment" key={`${index}-${node}`}>
-                      {index > 0 && <span className="route-arrow" aria-hidden="true">→</span>}
-                      <span className="route-node" data-node-id={node} style={{ background: algorithmDetails[result.algorithm].pale, color: algorithmDetails[result.algorithm].textColor }}>{locationLabel(node)}</span>
-                    </span>
-                  )) : <span className="route-unavailable">No hay camino entre {locationLabel(result.origin)} y {locationLabel(result.destination)}.</span>}
-                </div>
-                <details className="visit-sequence">
-                  <summary>Orden de exploración · {result.visited_order.length} ubicaciones</summary>
-                  <p>{result.visited_order.length ? result.visited_order.map(locationLabel).join(" → ") : "Sin ubicaciones exploradas"}</p>
-                </details>
-              </div>
-              <div className="result-metrics" aria-label="Indicadores del camino">
-                <div className="result-number"><div className="number">{result.total_weight ?? "—"}</div><small>Costo total</small></div>
-                <div className="result-number"><div className="number">{result.hops ?? "—"}</div><small>Saltos</small></div>
-              </div>
-            </div>
-          )}
-          {!result && !isLoading && !errorMessage && (
-            <div className="result-prompt" role="status">Análisis pendiente. Selecciona origen y destino y ejecuta un análisis.</div>
-          )}
           <div className="explanation">
             <Icon name="info" size={15} />
             <span>El orden de visita describe la exploración de Python y no es un camino continuo; `path` contiene solo las conexiones consecutivas reconstruidas.</span>
