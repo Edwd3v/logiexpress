@@ -1,11 +1,12 @@
-"""Dijkstra's shortest-path algorithm for non-negative edge weights.
+"""Algoritmo de camino mínimo de Dijkstra para pesos no negativos.
 
-With a lazy ``heapq`` and E edges, the standard bound is O((V + E) log E)
-(commonly written O((V + E) log V) for simple graphs). Each strict distance
-improvement can leave an obsolete heap entry, so the heap may contain O(E)
-entries and the algorithm uses O(V + E) auxiliary space, excluding the graph.
-Graph.neighbors() also sorts each visited node's adjacency list, adding
-O(sum(deg(v) * log(deg(v)))) across processed nodes (bounded by O(E log V)).
+Con una cola ``heapq`` perezosa y E aristas, la complejidad estándar es
+O((V + E) log E) (a menudo se expresa como O((V + E) log V) para grafos
+simples). Cada mejora estricta de distancia puede dejar una entrada obsoleta
+en la cola; por eso puede contener O(E) entradas y el algoritmo usa espacio
+auxiliar O(V + E), sin contar el grafo. Graph.neighbors() también ordena la
+lista de adyacencia de cada nodo visitado, lo que agrega
+O(sum(deg(v) * log(deg(v)))) en los nodos procesados (acotado por O(E log V)).
 """
 
 from heapq import heappop, heappush
@@ -17,13 +18,15 @@ from logiexpress.domain.graph import Graph
 
 
 def dijkstra(graph: Graph, origin: str, destination: str) -> RouteResult:
-    """Return a minimum-total-weight route for finite non-negative edges.
+    """Devuelve una ruta de peso total mínimo para aristas finitas no negativas.
 
-    Heap entries are ``(distance, node_id)``, providing deterministic ID-based
-    tie ordering. Relaxation is strict; equal-cost alternatives do not replace
-    predecessors, so this does not promise the lexicographically smallest path
-    among all optimal paths. Stale heap entries are ignored, and nodes enter
-    ``visited_order`` only when finalized by a current minimum-distance entry.
+    Las entradas de la cola son ``(distance, node_id)``, lo que determina los
+    empates de forma reproducible según el identificador. La relajación es
+    estricta: las alternativas de igual costo no reemplazan a los predecesores,
+    por lo que no se garantiza la ruta lexicográficamente menor entre todas las
+    rutas óptimas. Se ignoran las entradas obsoletas y los nodos se agregan a
+    ``visited_order`` solo cuando se finalizan mediante una entrada vigente de
+    distancia mínima.
     """
     if not graph.has_node(origin):
         raise KeyError(origin)

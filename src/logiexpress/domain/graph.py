@@ -1,33 +1,33 @@
-"""Validated undirected weighted graph backed by adjacency dictionaries."""
+"""Grafo ponderado no dirigido y validado, basado en diccionarios de adyacencia."""
 
 from math import isfinite
 from numbers import Real
 
 
 class Graph:
-    """A simple undirected graph with finite, non-negative edge weights."""
+    """Grafo simple no dirigido con pesos finitos y no negativos."""
 
     def __init__(self) -> None:
         self._adjacency: dict[str, dict[str, float]] = {}
 
     def add_node(self, node_id: str) -> None:
-        """Add a node, rejecting invalid identifiers and duplicates."""
+        """Agrega un nodo y rechaza identificadores inválidos o duplicados."""
         self._validate_node_id(node_id)
         if node_id in self._adjacency:
             raise ValueError(f"Node already exists: {node_id!r}")
         self._adjacency[node_id] = {}
 
     def has_node(self, node_id: str) -> bool:
-        """Return whether the graph contains *node_id*."""
+        """Indica si el grafo contiene *node_id*."""
         self._validate_node_id(node_id)
         return node_id in self._adjacency
 
     def node_ids(self) -> tuple[str, ...]:
-        """Return node identifiers in lexicographic order."""
+        """Devuelve los identificadores de nodos en orden lexicográfico."""
         return tuple(sorted(self._adjacency))
 
     def add_edge(self, source: str, target: str, weight: Real) -> None:
-        """Add one undirected edge between existing nodes."""
+        """Agrega una arista no dirigida entre dos nodos existentes."""
         self._validate_node_id(source)
         self._validate_node_id(target)
         numeric_weight = self._validate_weight(weight)
@@ -45,12 +45,12 @@ class Graph:
         self._adjacency[target][source] = numeric_weight
 
     def neighbors(self, node_id: str) -> tuple[tuple[str, float], ...]:
-        """Return a sorted immutable snapshot of a node's neighbors and weights."""
+        """Devuelve una copia inmutable y ordenada de los vecinos y sus pesos."""
         self._require_node(node_id)
         return tuple(sorted(self._adjacency[node_id].items()))
 
     def weight(self, source: str, target: str) -> float:
-        """Return the edge weight; raise KeyError if either node or edge is absent."""
+        """Devuelve el peso de la arista; lanza KeyError si falta un nodo o la arista."""
         self._require_node(source)
         self._require_node(target)
         try:
