@@ -94,6 +94,11 @@ def test_unknown_endpoint_raises_key_error(origin, destination):
         bfs(graph, origin, destination)
 
 
+def test_empty_graph_reports_unknown_origin_without_crashing():
+    with pytest.raises(KeyError, match="A"):
+        bfs(Graph(), "A", "B")
+
+
 def test_equal_length_alternatives_use_sorted_neighbor_order():
     graph = make_graph(
         ["A", "B", "C", "D"],

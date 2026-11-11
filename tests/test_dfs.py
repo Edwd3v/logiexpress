@@ -146,6 +146,11 @@ def test_dfs_does_not_modify_graph():
     assert after == before
 
 
+def test_empty_graph_reports_unknown_origin_without_crashing():
+    with pytest.raises(KeyError, match="A"):
+        dfs(Graph(), "A", "B")
+
+
 def test_dfs_can_find_a_path_with_more_hops_than_bfs():
     graph = make_graph(
         ["A", "B", "C", "D"],
